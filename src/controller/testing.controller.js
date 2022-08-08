@@ -8,9 +8,17 @@ const PostSubdivision = db.postSubdivisions;
 const Category = db.categories;
 const Testing = db.testings;
 class TestingController {
+  async getTestingsUser(req, res) {
+    const { id } = req.params;
+    const findTestings = await Testing.findAll({
+      where: { categoryPostSubdivisionId: id },
+    });
+    res.json(findTestings);
+  }
+
   async getTestings(req, res) {
     const { page, search } = req.query;
-
+    let employeeListWithCat = [];
     const employeeList = await Testing.findAll(
       paginate(
         {
@@ -26,7 +34,13 @@ class TestingController {
         { page, pageSize: 4 },
       ),
     );
-    res.json(employeeList);
+    for (let testItem of employeeList) {
+      const findCat = await Category.findOne({
+        where: { id: testItem?.categoryPostSubdivision?.categoryId },
+      });
+      employeeListWithCat.push({ ...testItem.toJSON(), category: findCat?.name });
+    }
+    res.json(employeeListWithCat);
   }
 
   async createTesting(req, res) {

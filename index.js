@@ -4,6 +4,7 @@ const app = express();
 const db = require('./src/models');
 const bodyParser = require('body-parser');
 const employeeRouter = require('./src/routes/employee.routes');
+const newsTypeRouter = require('./src/routes/newsType.routes');
 const testingRouter = require('./src/routes/testing.routes');
 const newsFilterRouter = require('./src/routes/newsFilter.routes');
 const newsRouter = require('./src/routes/news.routes');
@@ -38,13 +39,13 @@ app.use('/api', testingRouter);
 app.use('/api', subdivisionRouter);
 app.use('/api', postRouter);
 app.use('/api', categoryRouter);
+app.use('/api', newsTypeRouter);
 app.use(function (req, res, next) {
   throw new CustomError(404, TypeError.PATH_NOT_FOUND);
 });
 app.use(handleError);
 
-// const PORT = process.env.PORT || 8080;
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });

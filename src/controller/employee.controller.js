@@ -16,8 +16,88 @@ const Subdivision = db.subdivisions;
 const PostSubdivision = db.postSubdivisions;
 const CategoryPostSubdivision = db.categoryPostSubdivisions;
 class EmployeeController {
+  async authAdmin(req, res) {
+    res.json({ success: 'ok' });
+  }
+
+  async authEmployee(req, res) {
+    const authHeader = req.headers['request_token'];
+    if (!authHeader) {
+      throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
+    }
+    const tokenData = jwt.verify(authHeader, process.env.SECRET_TOKEN, (err, tokenData) => {
+      if (err) {
+        throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
+      }
+      return tokenData;
+    });
+    const findEmployee = await Employee.findOne({
+      attributes: { exclude: ['password'] },
+      where: { active: true, idService: tokenData.id },
+      include: {
+        model: PostSubdivision,
+        attributes: ['postId', 'subdivisionId'],
+      },
+    });
+    if (!findEmployee) {
+      throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
+    }
+    const findPost = await Post.findOne({
+      where: {
+        active: true,
+        id: findEmployee?.postSubdivision?.postId,
+      },
+    });
+    if (!findPost) {
+      throw new CustomError(404, TypeError.NOT_FOUND);
+    }
+    const findSubdivision = await Subdivision.findOne({
+      where: {
+        active: true,
+        id: findEmployee?.postSubdivision?.subdivisionId,
+      },
+    });
+    if (!findSubdivision) {
+      throw new CustomError(404, TypeError.NOT_FOUND);
+    }
+
+    res.json({ ...findEmployee.toJSON(), post: findPost?.name, subdivision: findSubdivision?.name });
+  }
+  async getEmployeeUser(req, res) {
+    const authHeader = req.headers['request_token'];
+    if (!authHeader) {
+      throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
+    }
+    const tokenData = jwt.verify(authHeader, process.env.SECRET_TOKEN, (err, tokenData) => {
+      if (err) {
+        throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
+      }
+      return tokenData;
+    });
+    let employeeExtand = {};
+    const employee = await Employee.findOne({
+      where: {
+        idService: tokenData?.id,
+      },
+      include: [
+        {
+          model: PostSubdivision,
+        },
+      ],
+    });
+
+    const findPost = await Post.findOne({
+      where: { id: employee?.postSubdivision?.postId },
+    });
+    const findSubdivision = await Subdivision.findOne({
+      where: { id: employee?.postSubdivision?.subdivisionId },
+    });
+    employeeExtand = { ...employee.toJSON(), post: findPost?.name, subdivision: findSubdivision?.name };
+    res.json(employeeExtand);
+  }
   async getEmployee(req, res) {
     const { id } = req.params;
+    let employeeExtand = {};
     const employee = await Employee.findOne({
       where: {
         id,
@@ -33,17 +113,28 @@ class EmployeeController {
         },
       ],
     });
-    res.json(employee);
+
+    const findPost = await Post.findOne({
+      where: { id: employee?.postSubdivision?.postId },
+    });
+    const findSubdivision = await Subdivision.findOne({
+      where: { id: employee?.postSubdivision?.subdivisionId },
+    });
+    employeeExtand = { ...employee.toJSON(), post: findPost?.name, subdivision: findSubdivision?.name };
+    res.json(employeeExtand);
   }
   async getEmployees(req, res) {
     const { page, search } = req.query;
-
+    let employeeListWithPost = [];
     const employeeList = await Employee.findAll(
       paginate(
         {
-          where: {
-            $or: [{ firstName: { $like: search + '%' } }, { lastName: { $like: search + '%' } }, { idService: { $startWith: search + '%' } }],
-          },
+          ...(search && {
+            where: {
+              $or: [{ firstName: { $like: search + '%' } }, { lastName: { $like: search + '%' } }, { idService: { $startWith: search + '%' } }],
+            },
+          }),
+
           include: [
             {
               model: PostSubdivision,
@@ -54,7 +145,15 @@ class EmployeeController {
         { page, pageSize: 4 },
       ),
     );
-    res.json(employeeList);
+
+    for (let testItem of employeeList) {
+      const findCat = await Post.findOne({
+        where: { id: testItem?.postSubdivision?.postId },
+      });
+      employeeListWithPost.push({ ...testItem.toJSON(), post: findCat?.name });
+    }
+
+    res.json(employeeListWithPost);
   }
 
   async syncEmployees(req, res) {
@@ -113,7 +212,7 @@ class EmployeeController {
       },
     );
 
-    res.json();
+    res.json({ success: true });
   }
   async loginEmployee(req, res) {
     const { login, password } = req.body;

@@ -13,3 +13,5 @@ router.post('/news/update', upload.single('image'), errorWrapper(newsController.
 module.exports = router;
 
 router.get('/news/list', errorWrapper(newsController.getNews));
+router.get('/news/user/:newsFilterId', errorWrapper(newsController.getNewsUser));
+router.get('/news/user/single/:newsId', errorWrapper(newsController.getNewsSingleUser));

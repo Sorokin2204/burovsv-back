@@ -6,6 +6,7 @@ const TypeError = {
   NOT_FOUND: 'NOT_FOUND',
   ALREADY_EXISTS: 'ALREADY_EXISTS',
   PARAMS_INVALID: 'PARAMS_INVALID',
+  PATH_NOT_FOUND: 'PATH_NOT_FOUND',
 };
 
 class CustomError {

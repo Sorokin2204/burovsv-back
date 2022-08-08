@@ -7,7 +7,67 @@ const { CustomError, TypeError } = require('../models/customError.model');
 const { default: axios } = require('axios');
 const NewsFilter = db.newsFilters;
 const NewsType = db.newsTypes;
+const NewsPost = db.newsPosts;
+const News = db.news;
+const Employee = db.employees;
+const Post = db.posts;
+const PostSubdivision = db.postSubdivisions;
 class NewsFilterController {
+  async getNewsFilterUser(req, res) {
+    const authHeader = req.headers['request_token'];
+    if (!authHeader) {
+      throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
+    }
+    const tokenData = jwt.verify(authHeader, process.env.SECRET_TOKEN, (err, tokenData) => {
+      if (err) {
+        throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
+      }
+      return tokenData;
+    });
+    const employee = await Employee.findOne({
+      where: {
+        idService: tokenData?.id,
+      },
+      include: [
+        {
+          model: PostSubdivision,
+        },
+      ],
+    });
+    const findPostNews = await Post.findOne({
+      where: {
+        id: employee?.postSubdivision?.postId,
+      },
+      include: [
+        {
+          model: News,
+          attributes: ['newsFilterId'],
+        },
+      ],
+    });
+    const filterIds = findPostNews.toJSON()?.news?.map((item) => item?.newsFilterId);
+
+    console.log(filterIds);
+    const findNewsFilters = await NewsFilter.findAll({
+      where: {
+        id: {
+          $in: filterIds,
+        },
+      },
+    });
+
+    res.json(findNewsFilters);
+  }
+
+  async getNewsFilterByType(req, res) {
+    const findNewsFilters = await NewsFilter.findAll();
+    if (findNewsFilters?.length === 0) {
+      throw new CustomError(404, TypeError.NOT_FOUND);
+    }
+
+    res.json(findNewsFilters);
+  }
+
   async createNewsFilter(req, res) {
     const { name, newsTypeId } = req.body;
     const findNewsType = await NewsType.findOne({

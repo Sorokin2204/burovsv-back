@@ -7,7 +7,7 @@ function handleError(err, req, res, next) {
   }
 
   if (err.message) {
-    console.error('\x1b[31m', '[ERROR] -', err.message);
+    console.error('\x1b[31m', '[ERROR] -', err);
   }
   res.status(customError.status).send(customError.response);
 }

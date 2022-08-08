@@ -13,9 +13,56 @@ const paginate = require('../utils/paginate');
 const News = db.news;
 const Post = db.posts;
 const NewsPost = db.newsPosts;
+const Employee = db.employees;
+const PostSubdivision = db.postSubdivisions;
 const NewsFilter = db.newsFilters;
 const NewsType = db.newsTypes;
 class NewsController {
+  async getNewsSingleUser(req, res) {
+    const { newsId } = req.params;
+    const findNews = await News.findOne({
+      where: { id: newsId },
+    });
+    res.json(findNews);
+  }
+
+  async getNewsUser(req, res) {
+    const { newsFilterId } = req.params;
+    const authHeader = req.headers['request_token'];
+    if (!authHeader) {
+      throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
+    }
+    const tokenData = jwt.verify(authHeader, process.env.SECRET_TOKEN, (err, tokenData) => {
+      if (err) {
+        throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
+      }
+      return tokenData;
+    });
+    const employee = await Employee.findOne({
+      where: {
+        idService: tokenData?.id,
+      },
+      include: [
+        {
+          model: PostSubdivision,
+        },
+      ],
+    });
+    const findPostNews = await Post.findOne({
+      where: {
+        id: employee?.postSubdivision?.postId,
+      },
+      include: [
+        {
+          model: News,
+          where: {
+            newsFilterId,
+          },
+        },
+      ],
+    });
+    res.json(findPostNews?.news);
+  }
   async getNews(req, res) {
     const { page, search } = req.query;
 
@@ -46,10 +93,10 @@ class NewsController {
 
   async createNews(req, res) {
     const { postIds } = req.body;
-
+    const postIdsArr = postIds.split(',');
     const data = await validateBodyNews(req.body, req.file);
     const newNews = await News.create(data);
-    const newsPosts = JSON.parse(postIds).map((postId) => ({ postId, newsId: newNews?.id }));
+    const newsPosts = postIdsArr.map((postId) => ({ postId, newsId: newNews?.id }));
     await NewsPost.bulkCreate(newsPosts);
     return res.status(200).json({});
   }
@@ -88,6 +135,7 @@ class NewsController {
   }
 }
 async function validateBodyNews({ title, desc, descShort, filterId, postIds, dateEnd }, image) {
+  const postIdsArr = postIds.split(',');
   let news = {
     title,
     desc,
@@ -98,7 +146,7 @@ async function validateBodyNews({ title, desc, descShort, filterId, postIds, dat
   };
   console.log(image);
   const date = moment(dateEnd, 'DD.MM.YYYY', true);
-  if ((!date.isValid() && dateEnd) || !desc || !title || !descShort || postIds?.length < 1 || !Array.isArray(JSON.parse(postIds))) {
+  if ((!date.isValid() && dateEnd) || !desc || !title || !descShort || postIdsArr?.length < 1 || !Array.isArray(postIdsArr)) {
     throw new CustomError(401, TypeError.PARAMS_INVALID);
   }
   if (date.isValid() && dateEnd) {
@@ -106,10 +154,10 @@ async function validateBodyNews({ title, desc, descShort, filterId, postIds, dat
   }
   const findPosts = await Post.findAll({
     where: {
-      id: JSON.parse(postIds),
+      id: postIdsArr,
     },
   });
-  if (findPosts?.length !== JSON.parse(postIds)?.length) {
+  if (findPosts?.length !== postIdsArr?.length) {
     throw new CustomError(404, TypeError.NOT_FOUND);
   }
   const findNewsFilter = await NewsFilter.findOne({

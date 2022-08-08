@@ -7,9 +7,9 @@ const auth = require('../middleware/auth');
 const authAdmin = require('../middleware/authAdmin');
 const { errorWrapper } = require('../middleware/customError');
 const upload = require('../middleware/multer');
-const newsFilterController = require('../controller/newsFilter.controller');
 
-router.post('/news-filter/create', errorWrapper(newsFilterController.createNewsFilter));
-router.get('/news-filter/list', errorWrapper(newsFilterController.getNewsFilterByType));
-router.get('/news-filter/user', errorWrapper(newsFilterController.getNewsFilterUser));
+const newsTypeController = require('../controller/newsType.controller');
+
+router.get('/news-type/list', errorWrapper(newsTypeController.getNewsTypes));
+
 module.exports = router;
