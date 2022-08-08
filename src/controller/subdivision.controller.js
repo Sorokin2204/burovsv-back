@@ -29,12 +29,27 @@ class SubdivisionController {
   }
 
   async syncSubdivisions(req, res) {
-    const dataFrom1C = await axios
-      .get(`${process.env.SERVER_URL}/test/subdivision`)
-      .then((res) => res.data)
-      .catch((err) => {
-        throw new CustomError();
-      });
+    const dataFrom1C = [
+      { ID: 'e0c6fddc-1349-11eb-80c9-a0d3c1ef2117', name: 'Абакан ЛО_CENALOMMMMMM ' },
+      { ID: 'f8d15325-1343-11eb-80c9-a0d3c1ef2117', name: 'Ачинск ЛО' },
+      { ID: 'ade98481-06e6-11eb-80c9-a0d3c1ef2117', name: 'Боготол ЛО' },
+      { ID: 'd80d79fc-1349-11eb-80c9-a0d3c1ef2117', name: 'Бородино ЛО_CENALOM' },
+      { ID: 'c9882c7d-1349-11eb-80c9-a0d3c1ef2117', name: 'Железногорск ЛО_CENALOM' },
+      { ID: 'ba683f30-1349-11eb-80c9-a0d3c1ef2117', name: 'Заозерный ЛО_CENALOM' },
+      { ID: 'aafc068d-1349-11eb-80c9-a0d3c1ef2117', name: 'Зеленогорск ЛО_CENALOM' },
+      { ID: '84b4219d-fbc1-11ea-80c9-a0d3c1ef2117', name: 'Канск ЛО' },
+      { ID: '1cde76c6-fcb2-11ea-80c9-a0d3c1ef2117', name: 'Красноярск (Пашенный) ЛО' },
+      { ID: '57a6b3bf-499a-11eb-80c9-a0d3c1ef2117', name: 'Красноярск (Спандаряна) ' },
+      { ID: 'a022709e-1349-11eb-80c9-a0d3c1ef2117', name: 'Кызыл ЛО' },
+      { ID: '95015495-1349-11eb-80c9-a0d3c1ef2117', name: 'Лесосибирск ЛО_CENALOM' },
+      { ID: '877454bc-1349-11eb-80c9-a0d3c1ef2117', name: 'Минусинск ЛО_CENALOM' },
+      { ID: '6d292a89-1349-11eb-80c9-a0d3c1ef2117', name: 'Назарово ЛО_CENALOM' },
+      { ID: '07053afb-1343-11eb-80c9-a0d3c1ef2117', name: 'Сосновоборск ЛО' },
+      { ID: 'fa561159-1348-11eb-80c9-a0d3c1ef2117', name: 'Черногорск ЛО_CENALOM' },
+      { ID: '0e248704-86e9-11eb-80cb-a0d3c1ef2117', name: 'Шарыпово ЛО' },
+      { ID: 'eceb2598-2279-11ec-80cb-a0d3c1ef2117', name: 'Красноярск (Атмосфера Дома) ЛО' },
+      { ID: 'e5b7f72b-4f36-11ec-80cb-a0d3c1ef2117', name: 'Красноярск (Дудинская) ЛО ' },
+    ];
 
     const formatData = formatSubdivisions(dataFrom1C);
 
