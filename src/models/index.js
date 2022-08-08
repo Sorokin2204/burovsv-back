@@ -9,7 +9,7 @@ require('dotenv').config();
 //   dbName: 'heroku_ab36879f58c5bab',
 // };
 const config = {
-  host: 'd5e100f3@us-cdbr-east-06.cleardb.net',
+  host: 'us-cdbr-east-06.cleardb.net',
   user: 'bda484f42dd392',
   pass: 'd5e100f3',
   dbName: 'heroku_067da1f490a0278',
