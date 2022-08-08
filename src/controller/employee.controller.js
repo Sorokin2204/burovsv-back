@@ -158,7 +158,7 @@ class EmployeeController {
 
   async syncEmployees(req, res) {
     const dataFrom1C = await axios
-      .get('http://localhost:3004/employee')
+      .get(`${process.env.SERVER_URL}/test/employee`)
       .then((res) => res.data)
       .catch((err) => {
         throw new CustomError();

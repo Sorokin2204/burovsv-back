@@ -30,7 +30,7 @@ class SubdivisionController {
 
   async syncSubdivisions(req, res) {
     const dataFrom1C = await axios
-      .get('http://localhost:3004/subdivision')
+      .get(`${process.env.SERVER_URL}/test/subdivision`)
       .then((res) => res.data)
       .catch((err) => {
         throw new CustomError();
