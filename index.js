@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 db.sequelize.sync().then((se) => {
-  // reset(db);
+  reset(db);
 });
 
 app.use('/api', employeeRouter);
