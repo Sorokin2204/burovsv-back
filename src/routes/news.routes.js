@@ -14,4 +14,7 @@ module.exports = router;
 
 router.get('/news/list', errorWrapper(newsController.getNews));
 router.get('/news/user/:newsFilterId', errorWrapper(newsController.getNewsUser));
+
 router.get('/news/user/single/:newsId', errorWrapper(newsController.getNewsSingleUser));
+router.get('/news/admin/single/:newsId', errorWrapper(newsController.getNewsSingleAdmin));
+router.post('/news/delete', errorWrapper(newsController.deleteNews));

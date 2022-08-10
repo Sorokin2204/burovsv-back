@@ -8,6 +8,7 @@ const { errorWrapper } = require('../middleware/customError');
 
 router.get('/employee/sync', errorWrapper(employeeController.syncEmployees));
 router.post('/employee/login', errorWrapper(employeeController.loginEmployee));
+router.post('/employee/delete', errorWrapper(employeeController.deleteEmployee));
 
 router.post('/employee/update', errorWrapper(employeeController.updateEmployee));
 router.get('/employee/list', errorWrapper(employeeController.getEmployees));

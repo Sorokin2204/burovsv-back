@@ -25,9 +25,33 @@ class NewsController {
     });
     res.json(findNews);
   }
+  async getNewsSingleAdmin(req, res) {
+    const { newsId } = req.params;
+    const findNews = await News.findOne({
+      where: { id: newsId },
+      include: [
+        {
+          model: Post,
+        },
+        { model: NewsFilter },
+      ],
+    });
+    res.json(findNews);
+  }
 
+  async deleteNews(req, res) {
+    const { newsId } = req.body;
+    await News.update(
+      { active: false },
+      {
+        where: { id: newsId },
+      },
+    );
+    res.json({ success: true });
+  }
   async getNewsUser(req, res) {
     const { newsFilterId } = req.params;
+    const { newsTypeId } = req.query;
     const authHeader = req.headers['request_token'];
     if (!authHeader) {
       throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
@@ -56,8 +80,21 @@ class NewsController {
         {
           model: News,
           where: {
-            newsFilterId,
+            active: true,
           },
+          include: [
+            {
+              model: NewsFilter,
+              where: {
+                newsTypeId,
+              },
+              ...(newsFilterId != 0 && {
+                where: {
+                  id: newsFilterId,
+                },
+              }),
+            },
+          ],
         },
       ],
     });
@@ -112,7 +149,7 @@ class NewsController {
       throw new CustomError(404, TypeError.NOT_FOUND);
     }
 
-    if ((req.file && findNews?.image) || findNews?.image) {
+    if (req.file && findNews?.image) {
       const imagePath = path.join(path.resolve('./'), '/public/images');
       const imageFullPath = path.resolve(`${imagePath}/${findNews?.image}`);
       fs.exists(imageFullPath, function (exists) {
@@ -129,12 +166,12 @@ class NewsController {
         newsId: id,
       },
     });
-    const newsPosts = JSON.parse(postIds).map((postId) => ({ postId, newsId: id }));
+    const newsPosts = postIds.split(',').map((postId) => ({ postId, newsId: id }));
     await NewsPost.bulkCreate(newsPosts);
-    res.json();
+    res.json({ success: true });
   }
 }
-async function validateBodyNews({ title, desc, descShort, filterId, postIds, dateEnd }, image) {
+async function validateBodyNews({ title, desc, descShort, filterId, postIds, dateEnd }, fileUpload) {
   const postIdsArr = postIds.split(',');
   let news = {
     title,
@@ -142,9 +179,8 @@ async function validateBodyNews({ title, desc, descShort, filterId, postIds, dat
     descShort,
     dateStart: null,
     dateEnd: null,
-    image: null,
   };
-  console.log(image);
+
   const date = moment(dateEnd, 'DD.MM.YYYY', true);
   if ((!date.isValid() && dateEnd) || !desc || !title || !descShort || postIdsArr?.length < 1 || !Array.isArray(postIdsArr)) {
     throw new CustomError(401, TypeError.PARAMS_INVALID);
@@ -170,13 +206,13 @@ async function validateBodyNews({ title, desc, descShort, filterId, postIds, dat
   }
   news = { ...news, newsFilterId: filterId };
 
-  if (image) {
+  if (fileUpload) {
     const imagePath = path.join(path.resolve('./'), '/public/images');
-    const imageExtension = mime.extension(image.mimetype);
+    const imageExtension = mime.extension(fileUpload.mimetype);
     const imageGenName = `${uuidv4()}.${imageExtension}`;
     const imageFullPath = path.resolve(`${imagePath}/${imageGenName}`);
     news = { ...news, image: imageGenName };
-    fs.writeFile(imageFullPath, image.buffer, function (err) {
+    fs.writeFile(imageFullPath, fileUpload.buffer, function (err) {
       if (err) throw new CustomError();
     });
   }

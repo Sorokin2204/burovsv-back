@@ -1,5 +1,6 @@
 const db = require('../models');
 const { CustomError, TypeError } = require('../models/customError.model');
+const jwt = require('jsonwebtoken');
 const validUrl = require('valid-url');
 const moment = require('moment');
 const paginate = require('../utils/paginate');
@@ -7,15 +8,88 @@ const CategoryPostSubdivision = db.categoryPostSubdivisions;
 const PostSubdivision = db.postSubdivisions;
 const Category = db.categories;
 const Testing = db.testings;
+const Employee = db.employees;
+const Post = db.posts;
 class TestingController {
+  async deleteTesting(req, res) {
+    const { testingId } = req.body;
+    await Testing.update(
+      { active: false },
+      {
+        where: { id: testingId },
+      },
+    );
+    res.json({ success: true });
+  }
   async getTestingsUser(req, res) {
     const { id } = req.params;
-    const findTestings = await Testing.findAll({
-      where: { categoryPostSubdivisionId: id },
-    });
-    res.json(findTestings);
+    if (id == 0) {
+      const authHeader = req.headers['request_token'];
+      if (!authHeader) {
+        throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
+      }
+      const tokenData = jwt.verify(authHeader, process.env.SECRET_TOKEN, (err, tokenData) => {
+        if (err) {
+          throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
+        }
+        return tokenData;
+      });
+      const employee = await Employee.findOne({
+        where: {
+          idService: tokenData?.id,
+        },
+      });
+
+      const findCatSubdivByIds = await CategoryPostSubdivision.findAll({
+        where: {
+          active: true,
+          postSubdivisionId: employee?.postSubdivisionId,
+        },
+      });
+      const testingList = await Testing.findAll({
+        where: {
+          categoryPostSubdivisionId: { $in: findCatSubdivByIds.map((item) => item?.id) },
+          active: true,
+        },
+      });
+      console.log(findCatSubdivByIds?.length);
+      res.json(testingList);
+    } else {
+      const findTestings = await Testing.findAll({
+        where: {
+          categoryPostSubdivisionId: id,
+        },
+      });
+      res.json(findTestings);
+    }
   }
 
+  async getTestingSingleUser(req, res) {
+    const { id } = req.params;
+
+    const findTesting = await Testing.findOne({
+      where: { categoryPostSubdivisionId: id },
+    });
+    res.json(findTesting);
+  }
+
+  async getTestingSingleAdmin(req, res) {
+    const { id } = req.params;
+    let testingWithSubdiv;
+    const findTesting = await Testing.findOne({
+      where: { categoryPostSubdivisionId: id },
+      include: [
+        {
+          model: CategoryPostSubdivision,
+        },
+      ],
+    });
+    const findSubdiv = await PostSubdivision.findOne({
+      where: { id: findTesting?.categoryPostSubdivision?.postSubdivisionId },
+    });
+    testingWithSubdiv = { ...findTesting.toJSON(), subdivision: { ...findSubdiv.toJSON() } };
+    res.json(testingWithSubdiv);
+  }
   async getTestings(req, res) {
     const { page, search } = req.query;
     let employeeListWithCat = [];
@@ -58,7 +132,7 @@ class TestingController {
     });
     const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: new Date(), linkTest, categoryPostSubdivisionId: newCategoryPostSubdivision?.id };
     const newCategory = await Testing.create(testing);
-    res.json();
+    res.json({ success: true });
   }
 
   async updateTesting(req, res) {
@@ -88,7 +162,7 @@ class TestingController {
     });
     const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), linkTest, categoryPostSubdivisionId: newCategoryPostSubdivision?.id };
     await Testing.update(testing, { where: { id } });
-    res.json();
+    res.json({ success: true });
   }
 }
 

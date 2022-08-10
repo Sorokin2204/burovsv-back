@@ -14,6 +14,8 @@ const Post = db.posts;
 const PostSubdivision = db.postSubdivisions;
 class NewsFilterController {
   async getNewsFilterUser(req, res) {
+    const { type } = req.query;
+    console.log(type);
     const authHeader = req.headers['request_token'];
     if (!authHeader) {
       throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
@@ -40,6 +42,9 @@ class NewsFilterController {
       },
       include: [
         {
+          where: {
+            active: true,
+          },
           model: News,
           attributes: ['newsFilterId'],
         },
@@ -53,6 +58,7 @@ class NewsFilterController {
         id: {
           $in: filterIds,
         },
+        ...((type == 1 || type == 2) && { newsTypeId: type }),
       },
     });
 

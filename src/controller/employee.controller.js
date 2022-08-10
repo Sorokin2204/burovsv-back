@@ -16,6 +16,17 @@ const Subdivision = db.subdivisions;
 const PostSubdivision = db.postSubdivisions;
 const CategoryPostSubdivision = db.categoryPostSubdivisions;
 class EmployeeController {
+  async deleteEmployee(req, res) {
+    const { employeeId } = req.body;
+    await Employee.update(
+      { active: false },
+      {
+        where: { id: employeeId },
+      },
+    );
+    res.json({ success: true });
+  }
+
   async authAdmin(req, res) {
     res.json({ success: 'ok' });
   }
@@ -158,9 +169,9 @@ class EmployeeController {
 
   async syncEmployees(req, res) {
     const dataFrom1C = [
-      { ID: '32332cb3-98ef-11ea-80c5-a0d3c1ef2117', last_name: 'Иванова', first_name: 'Анжела', tel: '89048977007', ID_post: '68e71c50-31c8-11ea-93c4-d89d672bfba0', ID_city: 'ade98481-06e6-11eb-80c9-a0d3c1ef2117' },
-      { ID: '0ce4cd45-d13b-11ea-80c6-a0d3c1ef2117', last_name: 'Утенков', first_name: 'Константин', tel: 0, ID_post: '912e26c9-9f41-11e6-a3d6-00259030ade0', ID_city: '57a6b3bf-499a-11eb-80c9-a0d3c1ef2117' },
-      { ID: 'd6830f12-d23a-11ea-80c6-a0d3c1ef2117', last_name: 'Нестерова', first_name: 'Наталья', tel: '89135880007', ID_post: 'c11d1cea-1a27-11ea-93c4-d89d672bfba0', ID_city: '877454bc-1349-11eb-80c9-a0d3c1ef2117' },
+      { ID: '32332cb3-98ef-11ea-80c5-a0d3c1ef2117', last_name: 'Иванова', first_name: 'Анжела', tel: '89048977007', ID_post: 'ab1c6a98-382d-11ea-93c4-d89d672bfba0', ID_city: 'ade98481-06e6-11eb-80c9-a0d3c1ef2117' },
+      { ID: '0ce4cd45-d13b-11ea-80c6-a0d3c1ef2117', last_name: 'Утенков', first_name: 'Константин', tel: 0, ID_post: 'ab1c6a98-382d-11ea-93c4-d89d672bfba0', ID_city: '57a6b3bf-499a-11eb-80c9-a0d3c1ef2117' },
+      { ID: 'd6830f12-d23a-11ea-80c6-a0d3c1ef2117', last_name: 'Нестерова', first_name: 'Наталья', tel: '89135880007', ID_post: 'c0f324b6-d0b5-11ea-80c6-a0d3c1ef2117', ID_city: '877454bc-1349-11eb-80c9-a0d3c1ef2117' },
       { ID: '7bb1832e-0a45-11eb-80c9-a0d3c1ef2117', last_name: 'Корелина', first_name: 'Анастасия', tel: 0, ID_post: '68e71c50-31c8-11ea-93c4-d89d672bfba0', ID_city: '57a6b3bf-499a-11eb-80c9-a0d3c1ef2117' },
       { ID: 'd856b987-0ed6-11eb-80c9-a0d3c1ef2117', last_name: 'Митяева', first_name: 'Виктория', tel: '89969327254', ID_post: '68e71c50-31c8-11ea-93c4-d89d672bfba0', ID_city: 'fa561159-1348-11eb-80c9-a0d3c1ef2117' },
       { ID: '781db3c8-135d-11eb-80c9-a0d3c1ef2117', last_name: 'Романова', first_name: 'Алла', tel: '89138353784', ID_post: 'a6144ded-2008-11ea-93c4-d89d672bfba0', ID_city: '1cde76c6-fcb2-11ea-80c9-a0d3c1ef2117' },
@@ -233,7 +244,7 @@ class EmployeeController {
     res.json(formatData);
   }
   async updateEmployee(req, res) {
-    const { id, coefficient, categoryPostSubdivisionIds } = req.body;
+    const { id, coefficient, categoryPostSubdivisionIds, postSubdivisionId } = req.body;
     const findEmployee = await Employee.findOne({ where: { idService: id } });
     if (!findEmployee) {
       throw new CustomError(404, TypeError.NOT_FOUND);
@@ -251,6 +262,7 @@ class EmployeeController {
       { active: true },
       {
         where: {
+          postSubdivisionId,
           id: categoryPostSubdivisionIds,
         },
       },
@@ -259,6 +271,7 @@ class EmployeeController {
       { active: false },
       {
         where: {
+          postSubdivisionId,
           id: {
             $notIn: categoryPostSubdivisionIds,
           },
@@ -296,12 +309,12 @@ function formatEmployees(data) {
     .filter(({ ID, last_name, first_name, tel, ID_post, ID_city }) => ID && isValidUUID(ID) && last_name && first_name && !isNaN(parseInt(tel)) && tel != '0' && ID_post && ID_city)
     .map(({ ID, last_name, first_name, tel, ID_post, ID_city }) => ({ idService: ID, firstName: first_name, lastName: last_name, tel: tel, postId: ID_post, subdivisionId: ID_city }));
 }
-function upsertEmployees(data) {
-  return Promise.all(
-    data.map((item) => {
-      return checkEmployees(item);
-    }),
-  );
+async function upsertEmployees(data) {
+  // return Promise.all(
+  for (let item of data) {
+    await checkEmployees(item);
+  }
+  // );
 }
 async function disableEmployees(data) {
   const ids = data.map(({ idService }) => idService);
@@ -356,14 +369,14 @@ async function checkEmployees({ idService, firstName, lastName, tel, postId, sub
     const plainPassword = getFirstPartUUID(idService);
     const password = bcrypt.hashSync(plainPassword, 3);
     employee = { ...employee, password, postSubdivisionId: postSubdivision?.id };
-    return Employee.create(employee);
+    return await Employee.create(employee);
   }
   if (findEmployee?.postSubdivisionId === postSubdivision?.id) {
     coefficient = findEmployee?.coefficient;
   }
   employee = { ...employee, coefficient, postSubdivisionId: postSubdivision?.id };
 
-  return Employee.update(employee, {
+  return await Employee.update(employee, {
     where: { idService },
   });
 }
