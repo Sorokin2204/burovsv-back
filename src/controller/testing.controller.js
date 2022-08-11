@@ -13,16 +13,27 @@ const Post = db.posts;
 class TestingController {
   async deleteTesting(req, res) {
     const { testingId } = req.body;
+    const findTesting = await Testing.findOne({
+      where: { id: testingId },
+    });
+
     await Testing.update(
       { active: false },
       {
         where: { id: testingId },
       },
     );
+    await CategoryPostSubdivision.update(
+      { active: false },
+      {
+        where: { id: findTesting?.categoryPostSubdivisionId },
+      },
+    );
     res.json({ success: true });
   }
   async getTestingsUser(req, res) {
     const { id } = req.params;
+    const { page } = req.query;
     if (id == 0) {
       const authHeader = req.headers['request_token'];
       if (!authHeader) {
@@ -46,21 +57,39 @@ class TestingController {
           postSubdivisionId: employee?.postSubdivisionId,
         },
       });
-      const testingList = await Testing.findAll({
+
+      const tesintCount = await Testing.count({
         where: {
           categoryPostSubdivisionId: { $in: findCatSubdivByIds.map((item) => item?.id) },
           active: true,
         },
       });
-      console.log(findCatSubdivByIds?.length);
-      res.json(testingList);
+
+      const testingList = await Testing.findAll(
+        paginate(
+          {
+            where: {
+              categoryPostSubdivisionId: { $in: findCatSubdivByIds.map((item) => item?.id) },
+              active: true,
+            },
+          },
+          { page, pageSize: 4 },
+        ),
+      );
+      res.json({ count: tesintCount, list: testingList });
     } else {
-      const findTestings = await Testing.findAll({
-        where: {
-          categoryPostSubdivisionId: id,
-        },
+      const findTestingCount = await Testing.count({
+        where: { active: true, categoryPostSubdivisionId: id },
       });
-      res.json(findTestings);
+      const findTestings = await Testing.findAll(
+        paginate(
+          {
+            where: { active: true, categoryPostSubdivisionId: id },
+          },
+          { page, pageSize: 4 },
+        ),
+      );
+      res.json({ count: findTestingCount, list: findTestings });
     }
   }
 
@@ -93,6 +122,7 @@ class TestingController {
   async getTestings(req, res) {
     const { page, search } = req.query;
     let employeeListWithCat = [];
+    const employeeCount = await Testing.count();
     const employeeList = await Testing.findAll(
       paginate(
         {
@@ -114,11 +144,12 @@ class TestingController {
       });
       employeeListWithCat.push({ ...testItem.toJSON(), category: findCat?.name });
     }
-    res.json(employeeListWithCat);
+    res.json({ count: employeeCount, list: employeeListWithCat });
   }
 
   async createTesting(req, res) {
     const { name, desc, dateEnd, linkTest, postId, subdivisionId, categoryId } = req.body;
+    let catPostSubId;
     await validateBodyTesting(req.body);
     const findPostSubdivision = await PostSubdivision.findOne({
       where: {
@@ -126,11 +157,20 @@ class TestingController {
         subdivisionId,
       },
     });
-    const newCategoryPostSubdivision = await CategoryPostSubdivision.create({
+    const findCatPostSub = await CategoryPostSubdivision.findOne({
       categoryId,
       postSubdivisionId: findPostSubdivision?.id,
     });
-    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: new Date(), linkTest, categoryPostSubdivisionId: newCategoryPostSubdivision?.id };
+    catPostSubId = findCatPostSub?.id;
+    if (!findCatPostSub) {
+      const newCategoryPostSubdivision = await CategoryPostSubdivision.create({
+        categoryId,
+        postSubdivisionId: findPostSubdivision?.id,
+      });
+      catPostSubId = newCategoryPostSubdivision?.id;
+    }
+
+    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: new Date(), linkTest, categoryPostSubdivisionId: catPostSubId };
     const newCategory = await Testing.create(testing);
     res.json({ success: true });
   }

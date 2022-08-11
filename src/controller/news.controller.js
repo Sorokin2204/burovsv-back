@@ -22,6 +22,7 @@ class NewsController {
     const { newsId } = req.params;
     const findNews = await News.findOne({
       where: { id: newsId },
+      include: [{ model: NewsFilter }],
     });
     res.json(findNews);
   }
@@ -51,8 +52,9 @@ class NewsController {
   }
   async getNewsUser(req, res) {
     const { newsFilterId } = req.params;
-    const { newsTypeId } = req.query;
+    const { newsTypeId, page } = req.query;
     const authHeader = req.headers['request_token'];
+    console.log('page', page);
     if (!authHeader) {
       throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
     }
@@ -79,9 +81,11 @@ class NewsController {
       include: [
         {
           model: News,
+
           where: {
             active: true,
           },
+
           include: [
             {
               model: NewsFilter,
@@ -102,7 +106,8 @@ class NewsController {
   }
   async getNews(req, res) {
     const { page, search } = req.query;
-
+    const newsCount = await News.count();
+    console.log('PAGE', page);
     const newsList = await News.findAll(
       paginate(
         {
@@ -125,7 +130,8 @@ class NewsController {
         { page, pageSize: 4 },
       ),
     );
-    res.json(newsList);
+
+    res.json({ count: newsCount, list: newsList });
   }
 
   async createNews(req, res) {

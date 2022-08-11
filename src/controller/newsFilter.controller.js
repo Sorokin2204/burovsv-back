@@ -50,19 +50,23 @@ class NewsFilterController {
         },
       ],
     });
-    const filterIds = findPostNews.toJSON()?.news?.map((item) => item?.newsFilterId);
+    if (!findPostNews) {
+      res.json([]);
+    } else {
+      const filterIds = findPostNews?.toJSON()?.news?.map((item) => item?.newsFilterId);
 
-    console.log(filterIds);
-    const findNewsFilters = await NewsFilter.findAll({
-      where: {
-        id: {
-          $in: filterIds,
+      console.log(filterIds);
+      const findNewsFilters = await NewsFilter.findAll({
+        where: {
+          id: {
+            $in: filterIds,
+          },
+          ...((type == 1 || type == 2) && { newsTypeId: type }),
         },
-        ...((type == 1 || type == 2) && { newsTypeId: type }),
-      },
-    });
+      });
 
-    res.json(findNewsFilters);
+      res.json(findNewsFilters);
+    }
   }
 
   async getNewsFilterByType(req, res) {

@@ -1,14 +1,20 @@
 const db = require('../models');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-
+const path = require('path');
 const jwt = require('jsonwebtoken');
+var mime = require('mime-types');
+var moment = require('moment');
+fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
+
 const { CustomError, TypeError } = require('../models/customError.model');
 const { default: axios } = require('axios');
 const { parseInt } = require('lodash');
 const isValidUUID = require('../utils/isValidUUID');
 const getFirstPartUUID = require('../utils/getFirstPartUUID');
 const paginate = require('../utils/paginate');
+const getDataFromToken = require('../utils/getDataFromToken');
 const Employee = db.employees;
 const Post = db.posts;
 const Category = db.categories;
@@ -16,6 +22,12 @@ const Subdivision = db.subdivisions;
 const PostSubdivision = db.postSubdivisions;
 const CategoryPostSubdivision = db.categoryPostSubdivisions;
 class EmployeeController {
+  async syncGlobal(req, res) {
+    await axios.get(`${process.env.SERVER_DOMAIN}/api/post/sync`);
+    await axios.get(`${process.env.SERVER_DOMAIN}/api/subdivision/sync`);
+    await axios.get(`${process.env.SERVER_DOMAIN}/api/employee/sync`);
+    res.json({ success: true });
+  }
   async deleteEmployee(req, res) {
     const { employeeId } = req.body;
     await Employee.update(
@@ -30,7 +42,43 @@ class EmployeeController {
   async authAdmin(req, res) {
     res.json({ success: 'ok' });
   }
-
+  async uploadAvatar(req, res) {
+    const employee = await getDataFromToken(req);
+    if (!employee) {
+      throw new CustomError(401, TypeError.NOT_FOUND);
+    }
+    if (!req.file) {
+      throw new CustomError(401, TypeError.PARAMS_INVALID);
+    }
+    let imageGenName;
+    if (req.file) {
+      const imagePath = path.join(path.resolve('./'), '/public/images');
+      const imageExtension = mime.extension(req.file.mimetype);
+      imageGenName = `${uuidv4()}.${imageExtension}`;
+      const imageFullPath = path.resolve(`${imagePath}/${imageGenName}`);
+      fs.writeFile(imageFullPath, req.file.buffer, function (err) {
+        if (err) throw new CustomError();
+      });
+    }
+    if (req.file && employee?.image) {
+      const imagePath = path.join(path.resolve('./'), '/public/images');
+      const imageFullPath = path.resolve(`${imagePath}/${employee?.image}`);
+      fs.exists(imageFullPath, function (exists) {
+        if (exists) {
+          fs.unlinkSync(imageFullPath);
+        }
+      });
+    }
+    await Employee.update(
+      { image: imageGenName },
+      {
+        where: {
+          id: employee?.id,
+        },
+      },
+    );
+    res.json({ success: true });
+  }
   async authEmployee(req, res) {
     const authHeader = req.headers['request_token'];
     if (!authHeader) {
@@ -137,6 +185,8 @@ class EmployeeController {
   async getEmployees(req, res) {
     const { page, search } = req.query;
     let employeeListWithPost = [];
+    const empolyeesCount = await Employee.count();
+
     const employeeList = await Employee.findAll(
       paginate(
         {
@@ -164,14 +214,14 @@ class EmployeeController {
       employeeListWithPost.push({ ...testItem.toJSON(), post: findCat?.name });
     }
 
-    res.json(employeeListWithPost);
+    res.json({ pages: empolyeesCount, list: employeeListWithPost });
   }
 
   async syncEmployees(req, res) {
     const dataFrom1C = [
       { ID: '32332cb3-98ef-11ea-80c5-a0d3c1ef2117', last_name: 'Иванова', first_name: 'Анжела', tel: '89048977007', ID_post: 'ab1c6a98-382d-11ea-93c4-d89d672bfba0', ID_city: 'ade98481-06e6-11eb-80c9-a0d3c1ef2117' },
       { ID: '0ce4cd45-d13b-11ea-80c6-a0d3c1ef2117', last_name: 'Утенков', first_name: 'Константин', tel: 0, ID_post: 'ab1c6a98-382d-11ea-93c4-d89d672bfba0', ID_city: '57a6b3bf-499a-11eb-80c9-a0d3c1ef2117' },
-      { ID: 'd6830f12-d23a-11ea-80c6-a0d3c1ef2117', last_name: 'Нестерова', first_name: 'Наталья', tel: '89135880007', ID_post: 'c0f324b6-d0b5-11ea-80c6-a0d3c1ef2117', ID_city: '877454bc-1349-11eb-80c9-a0d3c1ef2117' },
+      { ID: 'd6830f12-d23a-11ea-80c6-a0d3c1ef2117', last_name: 'Нестерова', first_name: 'Натальяяяяяяяяяяяя', tel: '77777777777', ID_post: 'c0f324b6-d0b5-11ea-80c6-a0d3c1ef2117', ID_city: '877454bc-1349-11eb-80c9-a0d3c1ef2117' },
       { ID: '7bb1832e-0a45-11eb-80c9-a0d3c1ef2117', last_name: 'Корелина', first_name: 'Анастасия', tel: 0, ID_post: '68e71c50-31c8-11ea-93c4-d89d672bfba0', ID_city: '57a6b3bf-499a-11eb-80c9-a0d3c1ef2117' },
       { ID: 'd856b987-0ed6-11eb-80c9-a0d3c1ef2117', last_name: 'Митяева', first_name: 'Виктория', tel: '89969327254', ID_post: '68e71c50-31c8-11ea-93c4-d89d672bfba0', ID_city: 'fa561159-1348-11eb-80c9-a0d3c1ef2117' },
       { ID: '781db3c8-135d-11eb-80c9-a0d3c1ef2117', last_name: 'Романова', first_name: 'Алла', tel: '89138353784', ID_post: 'a6144ded-2008-11ea-93c4-d89d672bfba0', ID_city: '1cde76c6-fcb2-11ea-80c9-a0d3c1ef2117' },
@@ -335,6 +385,7 @@ async function checkEmployees({ idService, firstName, lastName, tel, postId, sub
   let role = idService === process.env.DIRECTOR_UUID ? 'admin' : 'user';
   let coefficient = 1;
   let employee = {
+    active: true,
     idService,
     firstName,
     lastName,
@@ -342,16 +393,26 @@ async function checkEmployees({ idService, firstName, lastName, tel, postId, sub
     tel,
   };
   const findSubdivision = await Subdivision.findOne({
-    where: { idService: subdivisionId },
+    where: { idService: subdivisionId, active: true },
   });
   if (!findSubdivision) {
-    return true;
+    return await Employee.update(
+      { active: false },
+      {
+        where: { idService },
+      },
+    );
   }
   const findPost = await Post.findOne({
-    where: { idService: postId },
+    where: { idService: postId, active: true },
   });
   if (!findPost) {
-    return true;
+    return await Employee.update(
+      { active: false },
+      {
+        where: { idService },
+      },
+    );
   }
   postSubdivision = await PostSubdivision.findOne({
     where: { postId: findPost?.id, subdivisionId: findSubdivision?.id },

@@ -24,6 +24,10 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.STRING,
       allowNull: false,
     },
+    image: {
+      type: Sequelize.STRING,
+      allowNull: true,
+    },
     role: { type: Sequelize.STRING, allowNull: false, defaultValue: 'user' },
     coefficient: {
       type: Sequelize.INTEGER,
