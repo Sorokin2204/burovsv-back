@@ -203,7 +203,7 @@ class EmployeeController {
             },
           ],
         },
-        { page, pageSize: 4 },
+        { page, pageSize: 10 },
       ),
     );
 

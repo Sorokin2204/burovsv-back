@@ -74,18 +74,55 @@ class NewsController {
         },
       ],
     });
-    const findPostNews = await Post.findOne({
+    const findNewsPosts = await NewsPost.findAll({
       where: {
-        id: employee?.postSubdivision?.postId,
+        postId: employee?.postSubdivision?.postId,
+      },
+    });
+    if (findNewsPosts?.length === 0) {
+      throw new CustomError(404, TypeError.NOT_FOUND);
+    }
+    const newsCount = await News.count({
+      id: {
+        $in: findNewsPosts?.map((posts) => posts?.newsId),
+      },
+      where: {
+        ...(newsTypeId == 1 && {
+          dateEnd: {
+            $gte: new Date(),
+          },
+        }),
+
+        active: true,
       },
       include: [
         {
-          model: News,
-
+          model: NewsFilter,
           where: {
+            newsTypeId,
+          },
+          ...(newsFilterId != 0 && {
+            where: {
+              id: newsFilterId,
+            },
+          }),
+        },
+      ],
+    });
+    const findNews = await News.findAll(
+      paginate(
+        {
+          id: {
+            $in: findNewsPosts?.map((posts) => posts?.newsId),
+          },
+          where: {
+            ...(newsTypeId == 1 && {
+              dateEnd: {
+                $gte: new Date(),
+              },
+            }),
             active: true,
           },
-
           include: [
             {
               model: NewsFilter,
@@ -100,9 +137,41 @@ class NewsController {
             },
           ],
         },
-      ],
-    });
-    res.json(findPostNews?.news);
+        { page, pageSize: newsTypeId == 1 ? 8 : 6 },
+      ),
+    );
+    // const findPostNews = await Post.findOne({
+    //   where: {
+    //     id: employee?.postSubdivision?.postId,
+    //   },
+    //   include: [
+    //     {
+    //       model: News,
+
+    //       where: {
+    //         dateEnd: {
+    //           $gte: new Date(),
+    //         },
+    //         active: true,
+    //       },
+
+    //       include: [
+    //         {
+    //           model: NewsFilter,
+    //           where: {
+    //             newsTypeId,
+    //           },
+    //           ...(newsFilterId != 0 && {
+    //             where: {
+    //               id: newsFilterId,
+    //             },
+    //           }),
+    //         },
+    //       ],
+    //     },
+    //   ],
+    // });
+    res.json({ count: newsCount, list: findNews });
   }
   async getNews(req, res) {
     const { page, search } = req.query;
@@ -127,7 +196,7 @@ class NewsController {
             },
           ],
         },
-        { page, pageSize: 4 },
+        { page, pageSize: 10 },
       ),
     );
 
@@ -188,7 +257,7 @@ async function validateBodyNews({ title, desc, descShort, filterId, postIds, dat
   };
 
   const date = moment(dateEnd, 'DD.MM.YYYY', true);
-  if ((!date.isValid() && dateEnd) || !desc || !title || !descShort || postIdsArr?.length < 1 || !Array.isArray(postIdsArr)) {
+  if ((!date.isValid() && dateEnd) || !desc || !title || !descShort || postIdsArr?.length == 0 || !Array.isArray(postIdsArr)) {
     throw new CustomError(401, TypeError.PARAMS_INVALID);
   }
   if (date.isValid() && dateEnd) {

@@ -69,11 +69,14 @@ class TestingController {
         paginate(
           {
             where: {
+              dateEnd: {
+                $gte: new Date(),
+              },
               categoryPostSubdivisionId: { $in: findCatSubdivByIds.map((item) => item?.id) },
               active: true,
             },
           },
-          { page, pageSize: 4 },
+          { page, pageSize: 6 },
         ),
       );
       res.json({ count: tesintCount, list: testingList });
@@ -84,9 +87,15 @@ class TestingController {
       const findTestings = await Testing.findAll(
         paginate(
           {
-            where: { active: true, categoryPostSubdivisionId: id },
+            where: {
+              dateEnd: {
+                $gte: new Date(),
+              },
+              active: true,
+              categoryPostSubdivisionId: id,
+            },
           },
-          { page, pageSize: 4 },
+          { page, pageSize: 6 },
         ),
       );
       res.json({ count: findTestingCount, list: findTestings });
@@ -135,7 +144,7 @@ class TestingController {
             },
           ],
         },
-        { page, pageSize: 4 },
+        { page, pageSize: 10 },
       ),
     );
     for (let testItem of employeeList) {
@@ -158,16 +167,19 @@ class TestingController {
       },
     });
     const findCatPostSub = await CategoryPostSubdivision.findOne({
-      categoryId,
-      postSubdivisionId: findPostSubdivision?.id,
+      where: {
+        categoryId,
+        postSubdivisionId: findPostSubdivision?.id,
+      },
     });
     catPostSubId = findCatPostSub?.id;
     if (!findCatPostSub) {
-      const newCategoryPostSubdivision = await CategoryPostSubdivision.create({
-        categoryId,
-        postSubdivisionId: findPostSubdivision?.id,
-      });
-      catPostSubId = newCategoryPostSubdivision?.id;
+      throw new CustomError(404, TypeError.NOT_FOUND);
+      // const newCategoryPostSubdivision = await CategoryPostSubdivision.create({
+      //   categoryId,
+      //   postSubdivisionId: findPostSubdivision?.id,
+      // });
+      // catPostSubId = newCategoryPostSubdivision?.id;
     }
 
     const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: new Date(), linkTest, categoryPostSubdivisionId: catPostSubId };
@@ -183,24 +195,36 @@ class TestingController {
     if (!findTesting) {
       throw new CustomError(404, TypeError.NOT_FOUND);
     }
-
-    await validateBodyTesting(req.body);
-    await CategoryPostSubdivision.destroy({
-      where: {
-        id: findTesting?.categoryPostSubdivisionId,
-      },
-    });
     const findPostSubdivision = await PostSubdivision.findOne({
       where: {
         postId,
         subdivisionId,
       },
     });
-    const newCategoryPostSubdivision = await CategoryPostSubdivision.create({
-      categoryId,
-      postSubdivisionId: findPostSubdivision?.id,
+    if (!findPostSubdivision) {
+      throw new CustomError(404, TypeError.NOT_FOUND);
+    }
+    const findCategoryPostSubdivision = await CategoryPostSubdivision.findOne({
+      where: {
+        categoryId,
+        postSubdivisionId: findPostSubdivision?.id,
+      },
     });
-    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), linkTest, categoryPostSubdivisionId: newCategoryPostSubdivision?.id };
+    if (!findCategoryPostSubdivision) {
+      throw new CustomError(404, TypeError.NOT_FOUND);
+    }
+    await validateBodyTesting(req.body);
+    // await CategoryPostSubdivision.destroy({
+    //   where: {
+    //     id: findTesting?.categoryPostSubdivisionId,
+    //   },
+    // });
+
+    // const newCategoryPostSubdivision = await CategoryPostSubdivision.create({
+    //   categoryId,
+    //   postSubdivisionId: findPostSubdivision?.id,
+    // });
+    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), linkTest, categoryPostSubdivisionId: findCategoryPostSubdivision?.id };
     await Testing.update(testing, { where: { id } });
     res.json({ success: true });
   }

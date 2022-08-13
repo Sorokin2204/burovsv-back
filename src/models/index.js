@@ -3,19 +3,19 @@ const reset = require('../setup');
 const setupRelationship = require('../setupRelationship');
 require('dotenv').config();
 
-const config = {
-  host: 'us-cdbr-east-06.cleardb.net',
-  user: 'bda484f42dd392',
-  pass: 'd5e100f3',
-  dbName: 'heroku_067da1f490a0278',
-};
-
 // const config = {
-//   host: 'localhost',
-//   user: 'root',
-//   pass: 'pass',
-//   dbName: 'burovsv_db',
+//   host: 'us-cdbr-east-06.cleardb.net',
+//   user: 'bda484f42dd392',
+//   pass: 'd5e100f3',
+//   dbName: 'heroku_067da1f490a0278',
 // };
+
+const config = {
+  host: 'localhost',
+  user: 'root',
+  pass: 'pass',
+  dbName: 'burovsv_db',
+};
 const Op = Sequelize.Op;
 const operatorsAliases = {
   $ne: Op.ne,
@@ -24,6 +24,10 @@ const operatorsAliases = {
   $in: Op.in,
   $like: Op.like,
   $startWith: Op.startsWith,
+  $lte: Op.lte,
+  $lt: Op.lt,
+  $gte: Op.gte,
+  $gt: Op.gt,
 };
 
 const sequelize = new Sequelize(config.dbName, config.user, config.pass, {
