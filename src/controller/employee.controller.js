@@ -356,7 +356,7 @@ class EmployeeController {
 
 function formatEmployees(data) {
   return data
-    .filter(({ ID, last_name, first_name, tel, ID_post, ID_city }) => ID && isValidUUID(ID) && last_name && first_name && !isNaN(parseInt(tel)) && tel != '0' && ID_post && ID_city)
+    .filter(({ ID, last_name, first_name, tel, ID_post, ID_city }) => ID && last_name && first_name && !isNaN(parseInt(tel)) && parseInt(tel) !== 0 && ID_post && ID_city)
     .map(({ ID, last_name, first_name, tel, ID_post, ID_city }) => ({ idService: ID, firstName: first_name, lastName: last_name, tel: tel, postId: ID_post, subdivisionId: ID_city }));
 }
 async function upsertEmployees(data) {
