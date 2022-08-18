@@ -175,11 +175,6 @@ class TestingController {
     catPostSubId = findCatPostSub?.id;
     if (!findCatPostSub) {
       throw new CustomError(404, TypeError.NOT_FOUND);
-      // const newCategoryPostSubdivision = await CategoryPostSubdivision.create({
-      //   categoryId,
-      //   postSubdivisionId: findPostSubdivision?.id,
-      // });
-      // catPostSubId = newCategoryPostSubdivision?.id;
     }
 
     const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: new Date(), linkTest, categoryPostSubdivisionId: catPostSubId };
@@ -214,16 +209,7 @@ class TestingController {
       throw new CustomError(404, TypeError.NOT_FOUND);
     }
     await validateBodyTesting(req.body);
-    // await CategoryPostSubdivision.destroy({
-    //   where: {
-    //     id: findTesting?.categoryPostSubdivisionId,
-    //   },
-    // });
 
-    // const newCategoryPostSubdivision = await CategoryPostSubdivision.create({
-    //   categoryId,
-    //   postSubdivisionId: findPostSubdivision?.id,
-    // });
     const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), linkTest, categoryPostSubdivisionId: findCategoryPostSubdivision?.id };
     await Testing.update(testing, { where: { id } });
     res.json({ success: true });

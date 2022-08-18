@@ -54,7 +54,7 @@ class NewsController {
     const { newsFilterId } = req.params;
     const { newsTypeId, page } = req.query;
     const authHeader = req.headers['request_token'];
-    console.log('page', page);
+
     if (!authHeader) {
       throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
     }
@@ -140,43 +140,13 @@ class NewsController {
         { page, pageSize: newsTypeId == 1 ? 8 : 6 },
       ),
     );
-    // const findPostNews = await Post.findOne({
-    //   where: {
-    //     id: employee?.postSubdivision?.postId,
-    //   },
-    //   include: [
-    //     {
-    //       model: News,
-
-    //       where: {
-    //         dateEnd: {
-    //           $gte: new Date(),
-    //         },
-    //         active: true,
-    //       },
-
-    //       include: [
-    //         {
-    //           model: NewsFilter,
-    //           where: {
-    //             newsTypeId,
-    //           },
-    //           ...(newsFilterId != 0 && {
-    //             where: {
-    //               id: newsFilterId,
-    //             },
-    //           }),
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // });
+    
     res.json({ count: newsCount, list: findNews });
   }
   async getNews(req, res) {
     const { page, search } = req.query;
     const newsCount = await News.count();
-    console.log('PAGE', page);
+
     const newsList = await News.findAll(
       paginate(
         {

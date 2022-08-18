@@ -4,18 +4,12 @@ const setupRelationship = require('../setupRelationship');
 require('dotenv').config();
 
 const config = {
-  host: 'us-cdbr-east-06.cleardb.net',
-  user: 'bda484f42dd392',
-  pass: 'd5e100f3',
-  dbName: 'heroku_067da1f490a0278',
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  pass: process.env.MYSQL_PASSWORD,
+  dbName: process.env.MYSQL_DB,
 };
 
-// const config = {
-//   host: 'localhost',
-//   user: 'root',
-//   pass: 'pass',
-//   dbName: 'burovsv_db',
-// };
 const Op = Sequelize.Op;
 const operatorsAliases = {
   $ne: Op.ne,

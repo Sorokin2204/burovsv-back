@@ -360,14 +360,15 @@ function formatEmployees(data) {
     .map(({ ID, last_name, first_name, tel, ID_post, ID_city }) => ({ idService: ID, firstName: first_name, lastName: last_name, tel: tel, postId: ID_post, subdivisionId: ID_city }));
 }
 async function upsertEmployees(data) {
-  // return Promise.all(
+
   for (let item of data) {
     await checkEmployees(item);
   }
-  // );
+
 }
 async function disableEmployees(data) {
-  const ids = data.map(({ idService }) => idService);
+  let ids = data.map(({ idService }) => idService);
+  ids.push('1');
   return Employee.update(
     { active: false },
     {
@@ -379,10 +380,9 @@ async function disableEmployees(data) {
     },
   );
 }
-console.log(process.env.DIRECTOR_UUID);
 async function checkEmployees({ idService, firstName, lastName, tel, postId, subdivisionId }) {
   let postSubdivision;
-  let role = idService === process.env.DIRECTOR_UUID ? 'admin' : 'user';
+  let role = 'user';
   let coefficient = 1;
   let employee = {
     active: true,

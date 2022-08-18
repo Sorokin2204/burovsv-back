@@ -71,21 +71,20 @@ class NewsController {
     const testingIds = await CategoryPostSubdivision.findAll({
       where: {
         postSubdivisionId: employee?.postSubdivisionId,
-        // name: { $like: term + '%' },
       },
     });
 
     const testingList = await Testing.findAll({
       where: { categoryPostSubdivisionId: { $in: testingIds?.map((testId) => testId?.id) }, name: { $like: term + '%' } },
     });
-    console.log(testingList.length);
+
     const result = {
       news: newsList?.news,
       testing: testingList,
       study: studyList?.news,
       count: newsList?.news?.length + testingList?.length + studyList?.news?.length,
     };
-    // console.log(newsList.toJSON());
+
     res.json(result);
   }
 }
