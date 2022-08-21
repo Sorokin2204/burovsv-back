@@ -29,8 +29,8 @@ app.use(express.static('./public/images'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-db.sequelize.sync().then((se) => {
-  // reset(db);
+db.sequelize.sync({ force: true }).then((se) => {
+  reset(db);
 });
 
 app.use('/api', employeeRouter);
