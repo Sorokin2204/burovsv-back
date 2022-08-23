@@ -51,14 +51,21 @@ function upsertSubdivisions(data) {
 }
 async function disableSubdivisions(data) {
   const ids = data.map(({ idService }) => idService);
-  ids.push('1');
-  return Subdivision.update(
+  await Subdivision.update(
     { active: false },
     {
       where: {
         idService: {
           $notIn: ids,
         },
+      },
+    },
+  );
+  return Subdivision.update(
+    { active: true },
+    {
+      where: {
+        id: 1,
       },
     },
   );

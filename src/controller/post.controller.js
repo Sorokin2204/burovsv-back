@@ -24,9 +24,9 @@ class PostController {
   }
 
   async syncPosts(req, res) {
-    const dataFrom1C = await axios.get('http://WINNER-SQL/zup_pay/hs/Exch_LP/ListPost');
+    const dataFrom1C = await axios.get(`${process.env.API_1C_USER}:${process.env.API_1C_PASSWORD}@http://WINNER-SQL/zup_pay/hs/Exch_LP/ListPost`);
 
-    const formatData = formatPosts(dataFrom1C);
+    const formatData = formatPosts(dataFrom1C.data);
 
     await upsertPosts(formatData);
     await disablePosts(formatData);
@@ -46,8 +46,7 @@ function upsertPosts(data) {
 }
 async function disablePosts(data) {
   const ids = data.map(({ idService }) => idService);
-  ids.push('1');
-  return Post.update(
+  await Post.update(
     { active: false },
     {
       where: {
@@ -57,6 +56,15 @@ async function disablePosts(data) {
       },
     },
   );
+  return Post.update(
+    { active: true },
+    {
+      where: {
+        id: 1,
+      },
+    },
+  );
+  return;
 }
 async function checkPosts({ idService, name }) {
   const findItem = await Post.findOne({

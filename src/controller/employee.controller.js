@@ -218,9 +218,9 @@ class EmployeeController {
   }
 
   async syncEmployees(req, res) {
-    const dataFrom1C = await axios.get('http://WINNER-SQL/zup_pay/hs/Exch_LP/ListEmployees');
+    const dataFrom1C = await axios.get(`${process.env.API_1C_USER}:${process.env.API_1C_PASSWORD}@http://WINNER-SQL/zup_pay/hs/Exch_LP/ListEmployees`);
 
-    const formatData = formatEmployees(dataFrom1C);
+    const formatData = formatEmployees(dataFrom1C.data);
     await upsertEmployees(formatData);
     await disableEmployees(formatData);
 
@@ -299,14 +299,21 @@ async function upsertEmployees(data) {
 }
 async function disableEmployees(data) {
   let ids = data.map(({ idService }) => idService);
-  ids.push('1');
-  return Employee.update(
+  await Employee.update(
     { active: false },
     {
       where: {
         idService: {
           $notIn: ids,
         },
+      },
+    },
+  );
+  return Employee.update(
+    { active: true },
+    {
+      where: {
+        id: 1,
       },
     },
   );
