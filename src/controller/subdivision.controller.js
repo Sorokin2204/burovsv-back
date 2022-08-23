@@ -31,7 +31,7 @@ class SubdivisionController {
   async syncSubdivisions(req, res) {
     const dataFrom1C = await axios.get('http://winner-sql/zup_pay/hs/Exch_LP/ListSubdivisions');
 
-    const formatData = formatSubdivisions(dataFrom1C);
+    const formatData = formatSubdivisions(dataFrom1C.data);
 
     await upsertSubdivisions(formatData);
     await disableSubdivisions(formatData);
