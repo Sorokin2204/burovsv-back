@@ -24,7 +24,7 @@ class PostController {
   }
 
   async syncPosts(req, res) {
-    const dataFrom1C = await axios.get(`${process.env.API_1C_USER}:${process.env.API_1C_PASSWORD}@http://WINNER-SQL/zup_pay/hs/Exch_LP/ListPost`);
+    const dataFrom1C = await axios.get(`http://${process.env.API_1C_USER}:${process.env.API_1C_PASSWORD}@192.168.240.196/zup_pay/hs/Exch_LP/ListPost`);
 
     const formatData = formatPosts(dataFrom1C.data);
 
