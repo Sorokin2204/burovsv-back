@@ -7,6 +7,7 @@ var mime = require('mime-types');
 var moment = require('moment');
 fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+var xl = require('excel4node');
 
 const { CustomError, TypeError } = require('../models/customError.model');
 const { default: axios } = require('axios');
@@ -15,6 +16,9 @@ const isValidUUID = require('../utils/isValidUUID');
 const getFirstPartUUID = require('../utils/getFirstPartUUID');
 const paginate = require('../utils/paginate');
 const getDataFromToken = require('../utils/getDataFromToken');
+const TelegramBot = require('node-telegram-bot-api');
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
+
 const Employee = db.employees;
 const Post = db.posts;
 const Category = db.categories;
@@ -28,6 +32,26 @@ class EmployeeController {
     await axios.get(`${process.env.SERVER_DOMAIN}/api/employee/sync`);
     res.json({ success: true });
   }
+  async feedbackEmployee(req, res) {
+    const { message, anonym } = req.body;
+    const employee = await getDataFromToken(req);
+    const findPost = await Post.findOne({
+      where: { id: employee?.postSubdivision?.postId },
+    });
+    const findSubdivision = await Subdivision.findOne({
+      where: { id: employee?.postSubdivision?.subdivisionId },
+    });
+    console.log({ name: employee.firstName, post: findPost?.name, subdivision: findSubdivision?.name });
+    const messageTelegram = `
+${employee.firstName} ${employee.lastName}
+${findSubdivision?.name}
+${findPost?.name}
+Сообщение: "${message}"
+Анонимно: ${anonym ? 'Да' : 'Нет'}
+    `;
+    bot.sendMessage(-792834292, messageTelegram);
+    res.json({ success: true });
+  }
   async deleteEmployee(req, res) {
     const { employeeId } = req.body;
     await Employee.update(
@@ -38,7 +62,93 @@ class EmployeeController {
     );
     res.json({ success: true });
   }
+  async downloadEmployees(req, res) {
+    const { subdivision } = req.query;
+    console.log(subdivision);
+    var wb = new xl.Workbook();
+    var ws = wb.addWorksheet('Отчет');
 
+    let employeeListWithPost = [];
+    let findPostSubdivisions = [];
+
+    if (subdivision) {
+      findPostSubdivisions = await PostSubdivision.findAll({
+        where: { subdivisionId: subdivision },
+      });
+    }
+    const employeeList = await Employee.findAll({
+      ...(findPostSubdivisions?.length !== 0 && {
+        where: {
+          postSubdivisionId: {
+            $in: findPostSubdivisions?.map((findPostSub) => findPostSub?.id),
+          },
+        },
+      }),
+      include: [
+        {
+          model: PostSubdivision,
+          as: 'postSubdivision',
+          include: [
+            {
+              model: Category,
+            },
+          ],
+        },
+      ],
+    });
+
+    for (let testItem of employeeList) {
+      const findCat = await Post.findOne({
+        where: { id: testItem?.postSubdivision?.postId },
+      });
+      const findSubdiv = await Subdivision.findOne({
+        where: { id: testItem?.postSubdivision?.subdivisionId },
+      });
+
+      employeeListWithPost.push({ ...testItem.toJSON(), post: findCat?.name, subdivision: findSubdiv?.name });
+    }
+    let row = 4;
+    employeeListWithPost.map((item) => {
+      ws.cell(row, 1)
+        .string(`${item?.firstName} ${item?.lastName}`)
+        .style({ alignment: { vertical: 'top' } });
+      ws.cell(row, 2)
+        .string(item?.post)
+        .style({ alignment: { vertical: 'top' } });
+      ws.cell(row, 3)
+        .string(item?.subdivision)
+        .style({ alignment: { vertical: 'top' } });
+      ws.cell(row, 4)
+        .string(item?.postSubdivision?.categories?.map((cat) => cat?.name).join('\n'))
+        .style({ alignment: { wrapText: true } });
+
+      ws.cell(row, 5)
+        .string(item?.coefficient.toString())
+        .style({ alignment: { vertical: 'top' } });
+      ws.cell(row, 6)
+        .string(item?.idService.substring(0, 8))
+        .style({ alignment: { vertical: 'top' } });
+      ws.cell(row, 7)
+        .string(item?.tel.toString())
+        .style({ alignment: { vertical: 'top' } });
+      row++;
+    });
+    ws.cell(3, 1).string('ФИО');
+    ws.cell(3, 2).string('Должность');
+    ws.cell(3, 3).string('Подразделение');
+    ws.cell(3, 4).string('Категории');
+    ws.cell(3, 5).string('Коэффицент');
+    ws.cell(3, 6).string('Пароль');
+    ws.cell(3, 7).string('Логин');
+    const fileName = `${uuidv4()}.xlsx`;
+    wb.write(`./public/excel/${fileName}`, function (err, stats) {
+      if (err) {
+        throw new CustomError(400);
+      } else {
+        res.json({ file: `${process.env.SERVER_DOMAIN}/excel/${fileName}`, fileName: fileName });
+      }
+    });
+  }
   async authAdmin(req, res) {
     res.json({ success: 'ok' });
   }
@@ -183,10 +293,24 @@ class EmployeeController {
     res.json(employeeExtand);
   }
   async getEmployees(req, res) {
-    const { page, search } = req.query;
+    const { page, search, subdivision } = req.query;
     let employeeListWithPost = [];
-    const empolyeesCount = await Employee.count();
+    let findPostSubdivisions = [];
 
+    if (subdivision) {
+      findPostSubdivisions = await PostSubdivision.findAll({
+        where: { subdivisionId: subdivision },
+      });
+    }
+    const empolyeesCount = await Employee.count({
+      ...(findPostSubdivisions?.length !== 0 && {
+        where: {
+          postSubdivisionId: {
+            $in: findPostSubdivisions?.map((findPostSub) => findPostSub?.id),
+          },
+        },
+      }),
+    });
     const employeeList = await Employee.findAll(
       paginate(
         {
@@ -195,7 +319,13 @@ class EmployeeController {
               $or: [{ firstName: { $like: search + '%' } }, { lastName: { $like: search + '%' } }, { idService: { $startWith: search + '%' } }],
             },
           }),
-
+          ...(findPostSubdivisions?.length !== 0 && {
+            where: {
+              postSubdivisionId: {
+                $in: findPostSubdivisions?.map((findPostSub) => findPostSub?.id),
+              },
+            },
+          }),
           include: [
             {
               model: PostSubdivision,
@@ -211,7 +341,10 @@ class EmployeeController {
       const findCat = await Post.findOne({
         where: { id: testItem?.postSubdivision?.postId },
       });
-      employeeListWithPost.push({ ...testItem.toJSON(), post: findCat?.name });
+      const findSubdiv = await Subdivision.findOne({
+        where: { id: testItem?.postSubdivision?.subdivisionId },
+      });
+      employeeListWithPost.push({ ...testItem.toJSON(), post: findCat?.name, subdivision: findSubdiv?.name });
     }
 
     res.json({ pages: empolyeesCount, list: employeeListWithPost });

@@ -27,6 +27,7 @@ class PostController {
     const dataFrom1C = await axios.get(`http://${process.env.API_1C_USER}:${process.env.API_1C_PASSWORD}@192.168.240.196/zup_pay/hs/Exch_LP/ListPost`);
 
     const formatData = formatPosts(dataFrom1C.data);
+    // const formatData = formatPosts(dataFrom1C);
 
     await upsertPosts(formatData);
     await disablePosts(formatData);

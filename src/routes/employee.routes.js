@@ -9,12 +9,15 @@ const { errorWrapper } = require('../middleware/customError');
 router.get('/employee/sync', errorWrapper(employeeController.syncEmployees));
 router.post('/employee/login', errorWrapper(employeeController.loginEmployee));
 router.post('/employee/delete', errorWrapper(authAdmin), errorWrapper(employeeController.deleteEmployee));
+router.post('/employee/feedback', errorWrapper(auth), errorWrapper(employeeController.feedbackEmployee));
 
 router.post('/employee/upload', errorWrapper(auth), upload.single('image'), errorWrapper(employeeController.uploadAvatar));
 
 router.post('/employee/update', errorWrapper(authAdmin), errorWrapper(employeeController.updateEmployee));
 
 router.post('/global/sync', errorWrapper(employeeController.syncGlobal));
+
+router.get('/employee/download', errorWrapper(employeeController.downloadEmployees));
 
 router.get('/employee/list', errorWrapper(authAdmin), errorWrapper(employeeController.getEmployees));
 

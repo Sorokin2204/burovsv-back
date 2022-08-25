@@ -1,6 +1,7 @@
 const db = require('../models');
 const Employee = db.employees;
 const jwt = require('jsonwebtoken');
+const PostSubdivision = db.postSubdivisions;
 const getDataFromToken = async (req) => {
   const authHeader = req.headers['request_token'];
   if (!authHeader) {
@@ -15,7 +16,16 @@ const getDataFromToken = async (req) => {
   const findEmployee = await Employee.findOne({
     attributes: { exclude: ['password'] },
     where: { active: true, idService: tokenData.id },
+    include: [
+      {
+        model: PostSubdivision,
+      },
+    ],
   });
+  if (!findEmployee) {
+    throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
+  }
+
   return findEmployee;
 };
 

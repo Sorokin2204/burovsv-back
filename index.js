@@ -25,7 +25,8 @@ var corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(express.static('./public/images'));
+app.use('/images', express.static('./public/images'));
+app.use('/excel', express.static('./public/excel'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
