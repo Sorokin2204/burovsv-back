@@ -49,7 +49,7 @@ ${findPost?.name}
 Сообщение: "${message}"
 Анонимно: ${anonym ? 'Да' : 'Нет'}
     `;
-    bot.sendMessage(-792834292, messageTelegram);
+    bot.sendMessage(-750461609, messageTelegram);
     res.json({ success: true });
   }
   async deleteEmployee(req, res) {
@@ -141,7 +141,7 @@ ${findPost?.name}
     ws.cell(3, 6).string('Пароль');
     ws.cell(3, 7).string('Логин');
     const fileName = `${uuidv4()}.xlsx`;
-    wb.write(`./public/excel/${fileName}`, function (err, stats) {
+    wb.write(path.join(path.resolve('./'), '/public/excel', `/${fileName}`), function (err, stats) {
       if (err) {
         throw new CustomError(400);
       } else {

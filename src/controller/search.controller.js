@@ -13,6 +13,7 @@ const jwt = require('jsonwebtoken');
 class NewsController {
   async globalSearch(req, res) {
     const { term } = req.query;
+    console.log(term);
     const authHeader = req.headers['request_token'];
     if (!authHeader) {
       throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
@@ -33,6 +34,7 @@ class NewsController {
         },
       ],
     });
+
     const newsList = await Post.findOne({
       where: {
         id: employee?.postSubdivision?.postId,
@@ -50,6 +52,7 @@ class NewsController {
         },
       ],
     });
+    console.log(newsList?.news);
     const studyList = await Post.findOne({
       where: {
         id: employee?.postSubdivision?.postId,
@@ -77,12 +80,21 @@ class NewsController {
     const testingList = await Testing.findAll({
       where: { categoryPostSubdivisionId: { $in: testingIds?.map((testId) => testId?.id) }, name: { $like: term + '%' } },
     });
-
+    let count = 0;
+    if (newsList?.news?.length) {
+      count += newsList?.news?.length;
+    }
+    if (testingList?.length) {
+      count += testingList?.length;
+    }
+    if (studyList?.news?.length) {
+      count += studyList?.news?.length;
+    }
     const result = {
       news: newsList?.news,
       testing: testingList,
       study: studyList?.news,
-      count: newsList?.news?.length + testingList?.length + studyList?.news?.length,
+      count: count,
     };
 
     res.json(result);

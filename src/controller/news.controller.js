@@ -112,10 +112,12 @@ class NewsController {
     const findNews = await News.findAll(
       paginate(
         {
-          id: {
-            $in: findNewsPosts?.map((posts) => posts?.newsId),
-          },
+          order: [['createdAt', 'DESC']],
+
           where: {
+            id: {
+              $in: findNewsPosts?.map((posts) => posts?.newsId),
+            },
             ...(newsTypeId == 1 && {
               dateEnd: {
                 $gte: new Date(),
@@ -140,7 +142,7 @@ class NewsController {
         { page, pageSize: newsTypeId == 1 ? 8 : 6 },
       ),
     );
-    
+
     res.json({ count: newsCount, list: findNews });
   }
   async getNews(req, res) {
@@ -150,6 +152,7 @@ class NewsController {
     const newsList = await News.findAll(
       paginate(
         {
+          order: [['createdAt', 'DESC']],
           where: {
             title: { $like: search + '%' },
           },
