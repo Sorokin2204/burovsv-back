@@ -30,13 +30,13 @@ class CategoryController {
       throw new CustomError(401, TypeError.PARAMS_INVALID);
     }
 
-    const findPostSubdivision = await PostSubdivision.findOne({
+    const findPostSubdivision = await PostSubdivision.findAll({
       where: {
-        subdivisionId,
         postId,
       },
+      raw: true,
     });
-    if (!findPostSubdivision) {
+    if (findPostSubdivision?.length == 0) {
       throw new CustomError(404, TypeError.NOT_FOUND);
     }
     const findCategory = await Category.findOne({
@@ -56,11 +56,15 @@ class CategoryController {
       }
     }
     const newCategory = await Category.create({ name });
-    const categoryPostSubdivision = {
-      categoryId: newCategory?.id,
-      postSubdivisionId: findPostSubdivision?.id,
-    };
-    await CategoryPostSubdivision.create(categoryPostSubdivision);
+    for (let postSubdivItem of findPostSubdivision) {
+      const isCurrentUser = subdivisionId == findPostSubdivision?.subdivisionId && postId == findPostSubdivision?.postId;
+      const categoryPostSubdivision = {
+        categoryId: newCategory?.id,
+        postSubdivisionId: postSubdivItem?.id,
+        active: isCurrentUser,
+      };
+      await CategoryPostSubdivision.create(categoryPostSubdivision);
+    }
     res.json(findPostSubdivision);
   }
 }

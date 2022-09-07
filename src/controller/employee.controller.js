@@ -43,7 +43,7 @@ class EmployeeController {
     });
     console.log({ name: employee.firstName, post: findPost?.name, subdivision: findSubdivision?.name });
     const messageTelegram = `
-${employee.firstName} ${employee.lastName}
+${anonym ? employee.firstName + ' ' + employee.lastName : ''}
 ${findSubdivision?.name}
 ${findPost?.name}
 Сообщение: "${message}"
