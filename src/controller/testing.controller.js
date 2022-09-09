@@ -6,6 +6,7 @@ const moment = require('moment');
 const paginate = require('../utils/paginate');
 const CategoryPostSubdivision = db.categoryPostSubdivisions;
 const PostSubdivision = db.postSubdivisions;
+const CategoryTesting = db.categoryTestings;
 const Category = db.categories;
 const Testing = db.testings;
 const Employee = db.employees;
@@ -34,72 +35,55 @@ class TestingController {
   async getTestingsUser(req, res) {
     const { id } = req.params;
     const { page } = req.query;
-    if (id == 0) {
-      const authHeader = req.headers['request_token'];
-      if (!authHeader) {
-        throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
-      }
-      const tokenData = jwt.verify(authHeader, process.env.SECRET_TOKEN, (err, tokenData) => {
-        if (err) {
-          throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
-        }
-        return tokenData;
-      });
-      const employee = await Employee.findOne({
-        where: {
-          idService: tokenData?.id,
-        },
-      });
-
-      const findCatSubdivByIds = await CategoryPostSubdivision.findAll({
-        where: {
-          active: true,
-          postSubdivisionId: employee?.postSubdivisionId,
-        },
-      });
-
-      const tesintCount = await Testing.count({
-        where: {
-          categoryPostSubdivisionId: { $in: findCatSubdivByIds.map((item) => item?.id) },
-          active: true,
-        },
-      });
-
-      const testingList = await Testing.findAll(
-        paginate(
-          {
-            where: {
-              dateEnd: {
-                $gte: new Date(),
-              },
-              categoryPostSubdivisionId: { $in: findCatSubdivByIds.map((item) => item?.id) },
-              active: true,
-            },
-          },
-          { page, pageSize: 6 },
-        ),
-      );
-      res.json({ count: tesintCount, list: testingList });
-    } else {
-      const findTestingCount = await Testing.count({
-        where: { active: true, categoryPostSubdivisionId: id },
-      });
-      const findTestings = await Testing.findAll(
-        paginate(
-          {
-            where: {
-              dateEnd: {
-                $gte: new Date(),
-              },
-              active: true,
-              categoryPostSubdivisionId: id,
-            },
-          },
-          { page, pageSize: 6 },
-        ),
-      );
-      res.json({ count: findTestingCount, list: findTestings });
+    const authHeader = req.headers['request_token'];
+    if (!authHeader) {
+      throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
     }
+    const tokenData = jwt.verify(authHeader, process.env.SECRET_TOKEN, (err, tokenData) => {
+      if (err) {
+        throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
+      }
+      return tokenData;
+    });
+    const employee = await Employee.findOne({
+      where: {
+        idService: tokenData?.id,
+      },
+      include: {
+        model: PostSubdivision,
+        include: {
+          model: Category,
+        },
+      },
+    });
+    const allEmployeeCats = employee?.postSubdivision?.categories;
+
+    const findCategoryTesting = await CategoryTesting.findAll({
+      where: {
+        categoryId: {
+          $in: allEmployeeCats?.map((cat) => cat?.id),
+        },
+      },
+    });
+    const findTestingList = await Testing.findAndCountAll(
+      paginate(
+        {
+          where: {
+            active: true,
+            dateEnd: {
+              $gte: new Date(),
+            },
+            ...(id != 0 && { testingFilterId: id }),
+            id: {
+              $in: findCategoryTesting?.map((cat) => cat?.testingId),
+            },
+          },
+        },
+        { page, pageSize: 6 },
+      ),
+    );
+
+    res.json({ count: findTestingList?.count, list: findTestingList?.rows });
   }
 
   async getTestingSingleUser(req, res) {
@@ -113,20 +97,33 @@ class TestingController {
 
   async getTestingSingleAdmin(req, res) {
     const { id } = req.params;
-    let testingWithSubdiv;
+    let posts = [];
+    let cats = [];
     const findTesting = await Testing.findOne({
-      where: { categoryPostSubdivisionId: id },
+      where: { id },
       include: [
         {
-          model: CategoryPostSubdivision,
+          model: Category,
         },
       ],
     });
-    const findSubdiv = await PostSubdivision.findOne({
-      where: { id: findTesting?.categoryPostSubdivision?.postSubdivisionId },
-    });
-    testingWithSubdiv = { ...findTesting.toJSON(), subdivision: { ...findSubdiv.toJSON() } };
-    res.json(testingWithSubdiv);
+    for (let oneTest of findTesting?.categories) {
+      const findCatPostSubdiv = await CategoryPostSubdivision.findOne({
+        where: {
+          categoryId: oneTest?.id,
+        },
+      });
+      const findPostSubdiv = await PostSubdivision.findOne({
+        where: {
+          id: findCatPostSubdiv?.postSubdivisionId,
+        },
+      });
+      posts.push(findPostSubdiv?.postId);
+      cats.push(oneTest?.id);
+    }
+    posts = Array.from(new Set(posts));
+
+    res.json({ ...findTesting.toJSON(), cats, posts });
   }
   async getTestings(req, res) {
     const { page, search } = req.query;
@@ -147,72 +144,70 @@ class TestingController {
         { page, pageSize: 10 },
       ),
     );
-    for (let testItem of employeeList) {
-      const findCat = await Category.findOne({
-        where: { id: testItem?.categoryPostSubdivision?.categoryId },
-      });
-      employeeListWithCat.push({ ...testItem.toJSON(), category: findCat?.name });
-    }
-    res.json({ count: employeeCount, list: employeeListWithCat });
+    // for (let testItem of employeeList) {
+    //   const findCat = await Category.findOne({
+    //     where: { id: testItem?.categoryPostSubdivision?.categoryId },
+    //   });
+    //   employeeListWithCat.push({ ...testItem.toJSON(), category: findCat?.name });
+    // }
+    res.json({ count: employeeCount, list: employeeList });
   }
 
   async createTesting(req, res) {
-    const { name, desc, dateEnd, linkTest, postId, subdivisionId, categoryId } = req.body;
+    const { name, desc, dateEnd, linkTest, postId, subdivisionId, categoryId, testingFilterId, catIds } = req.body;
     let catPostSubId;
     await validateBodyTesting(req.body);
-    const findPostSubdivision = await PostSubdivision.findOne({
-      where: {
-        postId,
-        subdivisionId,
-      },
+
+    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: new Date(), linkTest, testingFilterId };
+    const newTesting = await Testing.create(testing);
+    const newCatTestins = [];
+    catIds?.map((catId) => {
+      if (catId) {
+        newCatTestins.push({
+          categoryId: typeof catId === 'string' ? catId : catId[0],
+          testingId: newTesting?.id,
+        });
+      }
     });
-    const findCatPostSub = await CategoryPostSubdivision.findOne({
-      where: {
-        categoryId,
-        postSubdivisionId: findPostSubdivision?.id,
-      },
-    });
-    catPostSubId = findCatPostSub?.id;
-    if (!findCatPostSub) {
-      throw new CustomError(404, TypeError.NOT_FOUND);
+    if (newCatTestins?.length !== 0) {
+      await CategoryTesting.bulkCreate(newCatTestins);
     }
 
-    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: new Date(), linkTest, categoryPostSubdivisionId: catPostSubId };
-    const newCategory = await Testing.create(testing);
     res.json({ success: true });
   }
 
   async updateTesting(req, res) {
-    const { id, name, desc, dateEnd, linkTest, postId, subdivisionId, categoryId } = req.body;
+    const { id, name, desc, dateEnd, linkTest, postId, subdivisionId, categoryId, testingFilterId, catIds } = req.body;
     const findTesting = await Testing.findOne({
       where: { id },
     });
     if (!findTesting) {
       throw new CustomError(404, TypeError.NOT_FOUND);
     }
-    const findPostSubdivision = await PostSubdivision.findOne({
-      where: {
-        postId,
-        subdivisionId,
-      },
-    });
-    if (!findPostSubdivision) {
-      throw new CustomError(404, TypeError.NOT_FOUND);
-    }
-    const findCategoryPostSubdivision = await CategoryPostSubdivision.findOne({
-      where: {
-        categoryId,
-        postSubdivisionId: findPostSubdivision?.id,
-      },
-    });
-    if (!findCategoryPostSubdivision) {
-      throw new CustomError(404, TypeError.NOT_FOUND);
-    }
+
     await validateBodyTesting(req.body);
 
-    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), linkTest, categoryPostSubdivisionId: findCategoryPostSubdivision?.id };
+    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), linkTest, testingFilterId };
     await Testing.update(testing, { where: { id } });
-    res.json({ success: true });
+    await CategoryTesting.destroy({
+      where: {
+        testingId: id,
+      },
+    });
+    let newCatTestins = [];
+    catIds?.map((catId) => {
+      if (catId) {
+        newCatTestins.push({
+          categoryId: typeof catId === 'string' ? catId : catId[0],
+          testingId: id,
+        });
+      }
+    });
+    if (newCatTestins?.length !== 0) {
+      await CategoryTesting.bulkCreate(newCatTestins);
+    }
+
+    await res.json({ success: true });
   }
 }
 
@@ -220,23 +215,6 @@ async function validateBodyTesting({ name, desc, dateEnd, linkTest, postId, subd
   const date = moment(dateEnd, 'DD.MM.YYYY', true);
   if (!date.isValid() || !desc || !name || !validUrl.isHttpsUri(linkTest)) {
     throw new CustomError(401, TypeError.PARAMS_INVALID);
-  }
-  const findCategory = await Category.findOne({
-    where: {
-      id: categoryId,
-    },
-  });
-  if (!findCategory) {
-    throw new CustomError(404, TypeError.NOT_FOUND);
-  }
-  const findPostSubdivision = await PostSubdivision.findOne({
-    where: {
-      postId,
-      subdivisionId,
-    },
-  });
-  if (!findPostSubdivision) {
-    throw new CustomError(404, TypeError.NOT_FOUND);
   }
 }
 module.exports = new TestingController();

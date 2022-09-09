@@ -8,6 +8,7 @@ const searchRouter = require('./src/routes/search.routes');
 const newsTypeRouter = require('./src/routes/newsType.routes');
 const testingRouter = require('./src/routes/testing.routes');
 const newsFilterRouter = require('./src/routes/newsFilter.routes');
+const testingFilterRouter = require('./src/routes/testingFilter.routes');
 const newsRouter = require('./src/routes/news.routes');
 const categoryRouter = require('./src/routes/category.routes');
 const postRouter = require('./src/routes/post.routes');
@@ -30,12 +31,13 @@ app.use('/excel', express.static('./public/excel'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-db.sequelize.sync().then((se) => {
+db.sequelize.sync({ alter: true }).then((se) => {
   // reset(db);
 });
 
 app.use('/api', employeeRouter);
 app.use('/api', newsFilterRouter);
+app.use('/api', testingFilterRouter);
 app.use('/api', newsRouter);
 app.use('/api', testingRouter);
 app.use('/api', subdivisionRouter);

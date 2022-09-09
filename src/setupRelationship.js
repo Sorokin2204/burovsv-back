@@ -14,8 +14,14 @@ const setupRelationship = (db) => {
   db.posts.belongsToMany(db.news, { through: { model: db.newsPosts, unique: false }, foreignKey: 'postId' });
   db.news.belongsToMany(db.posts, { through: { model: db.newsPosts, unique: false }, foreignKey: 'newsId' });
 
+  db.categories.belongsToMany(db.testings, { through: { model: db.categoryTestings, unique: false }, foreignKey: 'categoryId' });
+  db.testings.belongsToMany(db.categories, { through: { model: db.categoryTestings, unique: false }, foreignKey: 'testingId' });
+
   db.newsTypes.hasMany(db.newsFilters);
   db.newsFilters.belongsTo(db.newsTypes);
+
+  db.testingFilters.hasMany(db.testings);
+  db.testings.belongsTo(db.testingFilters);
 
   db.newsFilters.hasMany(db.news);
   db.news.belongsTo(db.newsFilters);

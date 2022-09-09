@@ -145,7 +145,7 @@ ${findPost?.name}
       if (err) {
         throw new CustomError(400);
       } else {
-        res.json({ file: `${process.env.SERVER_DOMAIN}/excel/${fileName}`, fileName: fileName });
+        res.json({ file: `${process.env.SITE_IP}/excel/${fileName}`, fileName: fileName });
       }
     });
   }

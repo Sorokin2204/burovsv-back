@@ -7,10 +7,21 @@ const { CustomError, TypeError } = require('../models/customError.model');
 const { default: axios } = require('axios');
 const Subdivision = db.subdivisions;
 const Post = db.posts;
+const Category = db.categories;
+const PostSubdivision = db.postSubdivisions;
 class SubdivisionController {
   async getSubdivisions(req, res) {
     const subdivision = await Subdivision.findAll();
     res.json(subdivision);
+  }
+
+  async getSubdivisionsByPost(req, res) {
+    const { postIds } = req.body;
+    const cats = [];
+    for (let postId of postIds) {
+      cats.push(await getCatsBySubdiv(postId));
+    }
+    res.json(cats);
   }
 
   async getSubdivision(req, res) {
@@ -90,4 +101,19 @@ async function checkSubdivisions({ idService, name }) {
   };
   return Subdivision.create(createData);
 }
+
+async function getCatsBySubdiv(postId) {
+  const firstPostSubdiv = await PostSubdivision.findOne({
+    where: {
+      postId: postId,
+    },
+    include: [
+      {
+        model: Category,
+      },
+    ],
+  });
+  return firstPostSubdiv;
+}
+
 module.exports = new SubdivisionController();
