@@ -2,12 +2,7 @@ const Sequelize = require('sequelize');
 const reset = require('../setup');
 const setupRelationship = require('../setupRelationship');
 require('dotenv').config();
-// const config = {
-//   host: 'us-cdbr-east-06.cleardb.net',
-//   user: 'bda484f42dd392',
-//   pass: 'd5e100f3',
-//   dbName: 'heroku_067da1f490a0278',
-// };
+
 const config = {
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
