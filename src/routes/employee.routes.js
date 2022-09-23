@@ -20,7 +20,7 @@ router.post('/global/sync', errorWrapper(employeeController.syncGlobal));
 router.get('/employee/download', errorWrapper(employeeController.downloadEmployees));
 
 router.get('/employee/list', errorWrapper(authAdmin), errorWrapper(employeeController.getEmployees));
-
+router.get('/employee/coeff', errorWrapper(employeeController.getCoeff));
 router.get('/employee/:id', errorWrapper(authAdmin), errorWrapper(employeeController.getEmployee));
 router.get('/employee/user/get', errorWrapper(auth), errorWrapper(employeeController.getEmployeeUser));
 router.get('/auth', errorWrapper(auth), errorWrapper(employeeController.authEmployee));

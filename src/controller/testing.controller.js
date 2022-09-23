@@ -56,7 +56,20 @@ class TestingController {
         },
       },
     });
-    const allEmployeeCats = employee?.postSubdivision?.categories;
+    const findSubdivCat = await CategoryPostSubdivision.findAll({
+      where: {
+        postSubdivisionId: employee?.postSubdivisionId,
+        active: true,
+      },
+    });
+
+    const allEmployeeCats = await Category.findAll({
+      where: {
+        id: {
+          $in: findSubdivCat?.map((findCatItem) => findCatItem?.categoryId),
+        },
+      },
+    });
 
     const findCategoryTesting = await CategoryTesting.findAll({
       where: {
@@ -65,6 +78,7 @@ class TestingController {
         },
       },
     });
+    console.log(findCategoryTesting);
     const findTestingList = await Testing.findAndCountAll(
       paginate(
         {
@@ -154,11 +168,11 @@ class TestingController {
   }
 
   async createTesting(req, res) {
-    const { name, desc, dateEnd, linkTest, postId, subdivisionId, categoryId, testingFilterId, catIds } = req.body;
+    const { name, desc, dateEnd, dateStart, linkTest, postId, subdivisionId, categoryId, testingFilterId, catIds } = req.body;
     let catPostSubId;
     await validateBodyTesting(req.body);
 
-    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: new Date(), linkTest, testingFilterId };
+    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: moment(dateStart, 'DD.MM.YYYY'), linkTest, testingFilterId };
     const newTesting = await Testing.create(testing);
     const newCatTestins = [];
     catIds?.map((catId) => {
@@ -177,7 +191,7 @@ class TestingController {
   }
 
   async updateTesting(req, res) {
-    const { id, name, desc, dateEnd, linkTest, postId, subdivisionId, categoryId, testingFilterId, catIds } = req.body;
+    const { id, name, desc, dateEnd, dateStart, linkTest, postId, subdivisionId, categoryId, testingFilterId, catIds } = req.body;
     const findTesting = await Testing.findOne({
       where: { id },
     });
@@ -187,7 +201,7 @@ class TestingController {
 
     await validateBodyTesting(req.body);
 
-    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), linkTest, testingFilterId };
+    const testing = { name, desc, dateEnd: moment(dateEnd, 'DD.MM.YYYY'), dateStart: moment(dateStart, 'DD.MM.YYYY'), linkTest, testingFilterId };
     await Testing.update(testing, { where: { id } });
     await CategoryTesting.destroy({
       where: {
@@ -211,9 +225,10 @@ class TestingController {
   }
 }
 
-async function validateBodyTesting({ name, desc, dateEnd, linkTest, postId, subdivisionId, categoryId }) {
+async function validateBodyTesting({ name, dateStart, desc, dateEnd, linkTest, postId, subdivisionId, categoryId }) {
   const date = moment(dateEnd, 'DD.MM.YYYY', true);
-  if (!date.isValid() || !desc || !name || !validUrl.isHttpsUri(linkTest)) {
+  const dateStartVa = moment(dateStart, 'DD.MM.YYYY', true);
+  if (!date.isValid() || !dateStartVa.isValid() || !desc || !name || !validUrl.isHttpsUri(linkTest)) {
     throw new CustomError(401, TypeError.PARAMS_INVALID);
   }
 }

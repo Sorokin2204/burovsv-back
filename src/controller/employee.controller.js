@@ -88,11 +88,6 @@ ${findPost?.name}
         {
           model: PostSubdivision,
           as: 'postSubdivision',
-          include: [
-            {
-              model: Category,
-            },
-          ],
         },
       ],
     });
@@ -104,8 +99,20 @@ ${findPost?.name}
       const findSubdiv = await Subdivision.findOne({
         where: { id: testItem?.postSubdivision?.subdivisionId },
       });
-
-      employeeListWithPost.push({ ...testItem.toJSON(), post: findCat?.name, subdivision: findSubdiv?.name });
+      const findSubdivCat = await CategoryPostSubdivision.findAll({
+        where: {
+          postSubdivisionId: testItem?.postSubdivisionId,
+          active: true,
+        },
+      });
+      const findCats = await Category.findAll({
+        where: {
+          id: {
+            $in: findSubdivCat?.map((findCatItem) => findCatItem?.categoryId),
+          },
+        },
+      });
+      employeeListWithPost.push({ ...testItem.toJSON(), post: findCat?.name, subdivision: findSubdiv?.name, cats: findCats });
     }
     let row = 4;
     employeeListWithPost.map((item) => {
@@ -119,7 +126,7 @@ ${findPost?.name}
         .string(item?.subdivision)
         .style({ alignment: { vertical: 'top' } });
       ws.cell(row, 4)
-        .string(item?.postSubdivision?.categories?.map((cat) => cat?.name).join('\n'))
+        .string(item?.cats?.map((cat) => cat?.name).join('\n'))
         .style({ alignment: { wrapText: true } });
 
       ws.cell(row, 5)
@@ -296,58 +303,90 @@ ${findPost?.name}
     const { page, search, subdivision } = req.query;
     let employeeListWithPost = [];
     let findPostSubdivisions = [];
-
+    let empolyeesCount = 0;
     if (subdivision) {
       findPostSubdivisions = await PostSubdivision.findAll({
         where: { subdivisionId: subdivision },
       });
     }
-    const empolyeesCount = await Employee.count({
-      ...(findPostSubdivisions?.length !== 0 && {
-        where: {
-          postSubdivisionId: {
-            $in: findPostSubdivisions?.map((findPostSub) => findPostSub?.id),
-          },
-        },
-      }),
-    });
-    const employeeList = await Employee.findAll(
-      paginate(
-        {
-          ...(search && {
-            where: {
-              $or: [{ firstName: { $like: search + '%' } }, { lastName: { $like: search + '%' } }, { idService: { $startWith: search + '%' } }],
+
+    if (findPostSubdivisions?.length == 0 && typeof subdivision == 'string' && subdivision != '0') {
+      res.json({ pages: empolyeesCount, list: employeeListWithPost });
+    } else {
+      empolyeesCount = await Employee.count({
+        ...(findPostSubdivisions?.length !== 0 && {
+          where: {
+            postSubdivisionId: {
+              $in: findPostSubdivisions?.map((findPostSub) => findPostSub?.id),
             },
-          }),
-          ...(findPostSubdivisions?.length !== 0 && {
+          },
+        }),
+      });
+      console.log(findPostSubdivisions?.length);
+      const employeeList = await Employee.findAll(
+        paginate(
+          {
+            ...(search && {
+              where: {
+                $or: [{ firstName: { $like: search + '%' } }, { lastName: { $like: search + '%' } }, { idService: { $startWith: search + '%' } }],
+              },
+            }),
+            ...(findPostSubdivisions?.length !== 0 && {
+              where: {
+                postSubdivisionId: {
+                  $in: findPostSubdivisions?.map((findPostSub) => findPostSub?.id),
+                },
+              },
+            }),
+            include: [
+              {
+                model: PostSubdivision,
+                as: 'postSubdivision',
+                ...(typeof subdivision == 'string' && {
+                  include: [
+                    {
+                      model: Category,
+                      as: 'categories',
+                    },
+                  ],
+                }),
+              },
+            ],
+          },
+          { page, pageSize: 10 },
+        ),
+      );
+
+      for (let testItem of employeeList) {
+        let findCats = [];
+        const findCat = await Post.findOne({
+          where: { id: testItem?.postSubdivision?.postId },
+        });
+        const findSubdiv = await Subdivision.findOne({
+          where: { id: testItem?.postSubdivision?.subdivisionId },
+        });
+
+        if (typeof subdivision == 'string') {
+          const findSubdivCat = await CategoryPostSubdivision.findAll({
             where: {
-              postSubdivisionId: {
-                $in: findPostSubdivisions?.map((findPostSub) => findPostSub?.id),
+              postSubdivisionId: testItem?.postSubdivisionId,
+              active: true,
+            },
+          });
+          findCats = await Category.findAll({
+            where: {
+              id: {
+                $in: findSubdivCat?.map((findCatItem) => findCatItem?.categoryId),
               },
             },
-          }),
-          include: [
-            {
-              model: PostSubdivision,
-              as: 'postSubdivision',
-            },
-          ],
-        },
-        { page, pageSize: 10 },
-      ),
-    );
+          });
+        }
 
-    for (let testItem of employeeList) {
-      const findCat = await Post.findOne({
-        where: { id: testItem?.postSubdivision?.postId },
-      });
-      const findSubdiv = await Subdivision.findOne({
-        where: { id: testItem?.postSubdivision?.subdivisionId },
-      });
-      employeeListWithPost.push({ ...testItem.toJSON(), post: findCat?.name, subdivision: findSubdiv?.name });
+        employeeListWithPost.push({ ...testItem.toJSON(), post: findCat?.name, subdivision: findSubdiv?.name, cats: findCats });
+      }
+
+      res.json({ pages: empolyeesCount, list: employeeListWithPost });
     }
-
-    res.json({ pages: empolyeesCount, list: employeeListWithPost });
   }
 
   async syncEmployees(req, res) {
@@ -358,6 +397,12 @@ ${findPost?.name}
     await disableEmployees(formatData);
 
     res.json(formatData);
+  }
+  async getCoeff(req, res) {
+    const findEmployees = await Employee.findAll({
+      attributes: ['idService', 'coefficient'],
+    });
+    res.json(findEmployees);
   }
   async updateEmployee(req, res) {
     const { id, coefficient, categoryPostSubdivisionIds, postSubdivisionId } = req.body;
