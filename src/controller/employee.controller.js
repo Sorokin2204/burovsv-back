@@ -399,6 +399,14 @@ ${findPost?.name}
     res.json(formatData);
   }
   async getCoeff(req, res) {
+    const { login, pass } = req.query;
+    const passCheck = await bcrypt.compare(pass, process.env.EXPORT_COEFF_PASS);
+    const loginCheck = await bcrypt.compare(login, process.env.EXPORT_COEFF_LOGIN);
+    console.log(passCheck);
+    console.log(loginCheck);
+    if (!passCheck || !loginCheck) {
+      throw new CustomError(400, TypeError.LOGIN_ERROR);
+    }
     const findEmployees = await Employee.findAll({
       attributes: ['idService', 'coefficient'],
     });
