@@ -17,7 +17,6 @@ const getFirstPartUUID = require('../utils/getFirstPartUUID');
 const paginate = require('../utils/paginate');
 const getDataFromToken = require('../utils/getDataFromToken');
 const TelegramBot = require('node-telegram-bot-api');
-const TelegramBot = null;
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
 const Employee = db.employees;

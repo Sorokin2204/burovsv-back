@@ -7,6 +7,7 @@ const paginate = require('../utils/paginate');
 const CategoryPostSubdivision = db.categoryPostSubdivisions;
 const PostSubdivision = db.postSubdivisions;
 const CategoryTesting = db.categoryTestings;
+const CategoryEmployee = db.categoryEmployees;
 const Category = db.categories;
 const Testing = db.testings;
 const Employee = db.employees;
@@ -56,25 +57,14 @@ class TestingController {
         },
       },
     });
-    const findSubdivCat = await CategoryPostSubdivision.findAll({
-      where: {
-        postSubdivisionId: employee?.postSubdivisionId,
-        active: true,
-      },
-    });
-
-    const allEmployeeCats = await Category.findAll({
-      where: {
-        id: {
-          $in: findSubdivCat?.map((findCatItem) => findCatItem?.categoryId),
-        },
-      },
+    const categoryEmployee = await CategoryEmployee.findAll({
+      where: { active: true, employeeId: employee?.id },
     });
 
     const findCategoryTesting = await CategoryTesting.findAll({
       where: {
         categoryId: {
-          $in: allEmployeeCats?.map((cat) => cat?.id),
+          $in: categoryEmployee?.map((cat) => cat?.categoryId),
         },
       },
     });

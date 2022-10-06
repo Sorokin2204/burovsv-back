@@ -184,12 +184,13 @@ class NewsController {
           order: [['createdAt', 'DESC']],
           where: {
             title: { $like: search + '%' },
-            '$NewsFilter.NewsType.id$': type,
+            // '$NewsFilter.NewsType.id$': type,
           },
           include: [
             {
               model: NewsFilter,
               attributes: ['name'],
+              where: { newsTypeId: type },
               include: [
                 {
                   model: NewsType,
@@ -306,7 +307,7 @@ class NewsController {
             $lte: new Date(new Date().setMonth(new Date().getMonth() + 6)),
           },
         },
-
+        active: true,
         model: News,
       },
     });
@@ -349,9 +350,9 @@ async function validateBodyNews({ title, desc, descShort, filterId, postIds, dat
     const timePublishSplit = timePublish?.split(':');
 
     dates = {
-      dateEnd: dateEndValid.set({ hour: timeEndSplit[0], minute: timeEndSplit[1] }),
-      dateStart: dateStartValid.set({ hour: timeStartSplit[0], minute: timeStartSplit[1] }),
-      datePublish: datePublishValid.set({ hour: timePublishSplit[0], minute: timePublishSplit[1] }),
+      dateEnd: dateEndValid.set({ hour: timeEndSplit[0], minute: timeEndSplit[1] }).utc().subtract(3, 'hour'),
+      dateStart: dateStartValid.set({ hour: timeStartSplit[0], minute: timeStartSplit[1] }).utc().subtract(3, 'hour'),
+      datePublish: datePublishValid.set({ hour: timePublishSplit[0], minute: timePublishSplit[1] }).utc().subtract(3, 'hour'),
     };
   } else {
     if ((!dateEndValid.isValid() && dateEnd) || (!dateStartValid.isValid() && dateStart) || !desc || !title || !descShort || postIdsArr?.length == 0 || !Array.isArray(postIdsArr)) {
