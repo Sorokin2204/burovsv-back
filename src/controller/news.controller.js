@@ -164,11 +164,12 @@ class NewsController {
     const newsCount = await News.count({
       where: {
         title: { $like: search + '%' },
-        '$NewsFilter.NewsType.id$': type,
+        // '$NewsFilter.NewsType.id$': type,
       },
       include: [
         {
           model: NewsFilter,
+          where: { newsTypeId: type },
           include: [
             {
               model: NewsType,
@@ -306,8 +307,9 @@ class NewsController {
           dateEnd: {
             $lte: new Date(new Date().setMonth(new Date().getMonth() + 6)),
           },
+          active: true,
         },
-        active: true,
+
         model: News,
       },
     });
