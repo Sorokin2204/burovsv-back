@@ -16,5 +16,6 @@ router.get('/news/list', errorWrapper(authAdmin), errorWrapper(newsController.ge
 router.get('/news/user/:newsFilterId', errorWrapper(newsController.getNewsUser));
 
 router.get('/news/user/single/:newsId', errorWrapper(auth), errorWrapper(newsController.getNewsSingleUser));
+router.get('/news/calendar', errorWrapper(auth), errorWrapper(newsController.getNewsCalendar));
 router.get('/news/admin/single/:newsId', errorWrapper(authAdmin), errorWrapper(newsController.getNewsSingleAdmin));
 router.post('/news/delete', errorWrapper(authAdmin), errorWrapper(newsController.deleteNews));

@@ -78,16 +78,26 @@ class TestingController {
         },
       },
     });
-    console.log(findCategoryTesting);
+
     const findTestingList = await Testing.findAndCountAll(
       paginate(
         {
           where: {
             active: true,
-            dateEnd: {
-              $gte: new Date(),
-            },
-            ...(id != 0 && { testingFilterId: id }),
+
+            ...(id == -1
+              ? {
+                  dateEnd: {
+                    $lte: new Date(),
+                  },
+                }
+              : {
+                  dateEnd: {
+                    $gte: new Date(),
+                  },
+                }),
+
+            ...(id != 0 && id != -1 && { testingFilterId: id }),
             id: {
               $in: findCategoryTesting?.map((cat) => cat?.testingId),
             },
@@ -153,6 +163,7 @@ class TestingController {
             {
               model: CategoryPostSubdivision,
             },
+            { model: Category },
           ],
         },
         { page, pageSize: 10 },

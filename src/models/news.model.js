@@ -12,12 +12,16 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.STRING,
       allowNull: false,
     },
+    datePublish: {
+      type: Sequelize.DATE,
+      allowNull: true,
+    },
     dateStart: {
-      type: Sequelize.DATEONLY,
+      type: Sequelize.DATE,
       allowNull: true,
     },
     dateEnd: {
-      type: Sequelize.DATEONLY,
+      type: Sequelize.DATE,
       allowNull: true,
     },
     image: {

@@ -17,9 +17,11 @@ const getFirstPartUUID = require('../utils/getFirstPartUUID');
 const paginate = require('../utils/paginate');
 const getDataFromToken = require('../utils/getDataFromToken');
 const TelegramBot = require('node-telegram-bot-api');
+const TelegramBot = null;
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
 const Employee = db.employees;
+const CategoryEmployee = db.categoryEmployees;
 const Post = db.posts;
 const Category = db.categories;
 const Subdivision = db.subdivisions;
@@ -89,6 +91,7 @@ ${findPost?.name}
           model: PostSubdivision,
           as: 'postSubdivision',
         },
+        { model: Category },
       ],
     });
 
@@ -126,7 +129,7 @@ ${findPost?.name}
         .string(item?.subdivision)
         .style({ alignment: { vertical: 'top' } });
       ws.cell(row, 4)
-        .string(item?.cats?.map((cat) => cat?.name).join('\n'))
+        .string(item?.categories?.map((cat) => cat?.name).join('\n'))
         .style({ alignment: { wrapText: true } });
 
       ws.cell(row, 5)
@@ -287,6 +290,7 @@ ${findPost?.name}
             },
           ],
         },
+        { model: Category },
       ],
     });
 
@@ -351,6 +355,7 @@ ${findPost?.name}
                   ],
                 }),
               },
+              { model: Category },
             ],
           },
           { page, pageSize: 10 },
@@ -419,34 +424,48 @@ ${findPost?.name}
       throw new CustomError(404, TypeError.NOT_FOUND);
     }
 
-    const findCategoryPostSubdivisions = await CategoryPostSubdivision.findAll({
+    // const findCategoryPostSubdivisions = await CategoryPostSubdivision.findAll({
+    //   where: {
+    //     id: categoryPostSubdivisionIds,
+    //   },
+    // });
+
+    // if (findCategoryPostSubdivisions?.length !== categoryPostSubdivisionIds?.length) {
+    //   throw new CustomError(404, TypeError.NOT_FOUND);
+    // }
+    await CategoryEmployee.destroy({
       where: {
-        id: categoryPostSubdivisionIds,
+        employeeId: findEmployee?.id,
       },
     });
-    if (findCategoryPostSubdivisions?.length !== categoryPostSubdivisionIds?.length) {
-      throw new CustomError(404, TypeError.NOT_FOUND);
+    for (let catPostSubdiv of categoryPostSubdivisionIds) {
+      const catItem = {
+        employeeId: findEmployee?.id,
+        categoryId: catPostSubdiv,
+      };
+      await upsert({ ...catItem, active: true }, catItem);
     }
-    await CategoryPostSubdivision.update(
-      { active: true },
-      {
-        where: {
-          postSubdivisionId,
-          id: categoryPostSubdivisionIds,
-        },
-      },
-    );
-    await CategoryPostSubdivision.update(
-      { active: false },
-      {
-        where: {
-          postSubdivisionId,
-          id: {
-            $notIn: categoryPostSubdivisionIds,
-          },
-        },
-      },
-    );
+
+    // await CategoryEmployee.update(
+    //   { active: true },
+    //   {
+    //     where: {
+    //       employeeId: findEmployee?.id,
+    //       categoryId: categoryPostSubdivisionIds,
+    //     },
+    //   },
+    // );
+    // await CategoryPostSubdivision.update(
+    //   { active: false },
+    //   {
+    //     where: {
+    //       postSubdivisionId,
+    //       id: {
+    //         $notIn: categoryPostSubdivisionIds,
+    //       },
+    //     },
+    //   },
+    // );
     await Employee.update(
       { coefficient },
       {
@@ -563,6 +582,14 @@ async function checkEmployees({ idService, firstName, lastName, tel, postId, sub
 
   return await Employee.update(employee, {
     where: { idService },
+  });
+}
+function upsert(values, condition) {
+  return CategoryEmployee.findOne({ where: condition }).then(function (obj) {
+    // update
+    if (obj) return obj.update(values);
+    // insert
+    return CategoryEmployee.create(values);
   });
 }
 module.exports = new EmployeeController();

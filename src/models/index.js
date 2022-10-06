@@ -29,7 +29,7 @@ const sequelize = new Sequelize(config.dbName, config.user, config.pass, {
   host: config.host,
   dialect: 'mysql',
   pool: {
-    max: 10,
+    max: 1,
     min: 0,
     acquire: 30000,
     idle: 10000,
@@ -59,6 +59,8 @@ db.posts = require('./post.model')(sequelize, Sequelize);
 db.categories = require('./category.model')(sequelize, Sequelize);
 db.categoryTestings = require('./categoryTesting.model')(sequelize, Sequelize);
 db.categoryPostSubdivisions = require('./categoryPostSubdivision.model')(sequelize, Sequelize);
+db.categoryEmployees = require('./categoryEmployee.model')(sequelize, Sequelize);
+db.newsCategories = require('./newsCategory.model')(sequelize, Sequelize);
 db.subdivisions = require('./subdivision.model')(sequelize, Sequelize);
 db.postSubdivisions = require('./postSubdivision.model')(sequelize, Sequelize);
 db.employees = require('./employee.model')(sequelize, Sequelize);

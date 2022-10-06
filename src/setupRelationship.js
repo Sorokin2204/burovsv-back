@@ -25,6 +25,12 @@ const setupRelationship = (db) => {
 
   db.newsFilters.hasMany(db.news);
   db.news.belongsTo(db.newsFilters);
+
+  db.employees.belongsToMany(db.categories, { through: { model: db.categoryEmployees, unique: false }, foreignKey: 'employeeId' });
+  db.categories.belongsToMany(db.employees, { through: { model: db.categoryEmployees, unique: false }, foreignKey: 'categoryId' });
+
+  db.news.belongsToMany(db.categories, { through: { model: db.newsCategories, unique: false }, foreignKey: 'newsId' });
+  db.categories.belongsToMany(db.news, { through: { model: db.newsCategories, unique: false }, foreignKey: 'categoryId' });
 };
 
 module.exports = setupRelationship;
