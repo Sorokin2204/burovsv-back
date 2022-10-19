@@ -352,9 +352,9 @@ async function validateBodyNews({ title, desc, descShort, filterId, postIds, dat
     const timePublishSplit = timePublish?.split(':');
 
     dates = {
-      dateEnd: dateEndValid.set({ hour: timeEndSplit[0], minute: timeEndSplit[1] }).utc().subtract(3, 'hour'),
-      dateStart: dateStartValid.set({ hour: timeStartSplit[0], minute: timeStartSplit[1] }).utc().subtract(3, 'hour'),
-      datePublish: datePublishValid.set({ hour: timePublishSplit[0], minute: timePublishSplit[1] }).utc().subtract(3, 'hour'),
+      dateEnd: dateEndValid.set({ hour: timeEndSplit[0], minute: timeEndSplit[1] }).subtract(7, 'hour'),
+      dateStart: dateStartValid.set({ hour: timeStartSplit[0], minute: timeStartSplit[1] }).subtract(7, 'hour'),
+      datePublish: datePublishValid.set({ hour: timePublishSplit[0], minute: timePublishSplit[1] }).subtract(7, 'hour'),
     };
   } else {
     if ((!dateEndValid.isValid() && dateEnd) || (!dateStartValid.isValid() && dateStart) || !desc || !title || !descShort || postIdsArr?.length == 0 || !Array.isArray(postIdsArr)) {

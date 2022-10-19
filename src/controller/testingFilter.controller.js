@@ -5,7 +5,9 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { CustomError, TypeError } = require('../models/customError.model');
 const { default: axios } = require('axios');
+const { sequelize } = require('../models');
 const TestingFilter = db.testingFilters;
+const Testing = db.testings;
 const Employee = db.employees;
 const PostSubdivision = db.postSubdivisions;
 const Category = db.categories;
@@ -31,23 +33,48 @@ class TestingFilterController {
       }
       return tokenData;
     });
-    const employee = await Employee.findOne({
+    const employeeCats = await Employee.findOne({
       where: {
         idService: tokenData?.id,
       },
       include: {
-        model: PostSubdivision,
+        model: Category,
+        attributes: ['id'],
         include: {
-          model: Category,
+          model: Testing,
+          where: {
+            dateEnd: {
+              $gte: new Date(),
+            },
+          },
+          attributes: ['testingFilterId'],
         },
       },
     });
+    let filterTestingIds = [];
+    // for (let item of employeeCats) {
+    //   for (let test of item?.testings) {
+    //     filterTestingIds.push(test?.testingFilterId);
+    //   }
+    // }
+    employeeCats?.categories?.map((item) => {
+      item?.testings?.map((test) => {
+        filterTestingIds.push(test?.testingFilterId);
+      });
+    });
+    filterTestingIds = [...new Set(filterTestingIds)];
 
-    // const data = await TestingFilter.findAll();
-    res.json(employee?.postSubdivision?.categories);
+    const filterTestingIdsFilters = await TestingFilter.findAll({
+      where: {
+        id: filterTestingIds,
+      },
+    });
+
+    res.json(filterTestingIdsFilters);
   }
   async getTestingsFilters(req, res) {
     const data = await TestingFilter.findAll();
+    console.log('hel');
     res.json(data);
   }
 }
