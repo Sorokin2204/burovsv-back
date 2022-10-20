@@ -43,6 +43,7 @@ class TestingFilterController {
         include: {
           model: Testing,
           where: {
+            active: true,
             dateEnd: {
               $gte: new Date(),
             },
@@ -74,7 +75,7 @@ class TestingFilterController {
   }
   async getTestingsFilters(req, res) {
     const data = await TestingFilter.findAll();
-    console.log('hel');
+
     res.json(data);
   }
 }

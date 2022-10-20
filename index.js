@@ -32,6 +32,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 db.sequelize.sync({ alter: true }).then((se) => {
+  db.newsTypes.update(
+    { name: 'Обучение' },
+    {
+      where: {
+        id: 2,
+      },
+    },
+  );
   // reset(db);
 });
 

@@ -153,7 +153,7 @@ class NewsController {
 
           ...newsCondition,
         },
-        { page, pageSize: 6 },
+        { page, pageSize: 8 },
       ),
     );
 
