@@ -489,6 +489,11 @@ ${findPost?.name}
     const token = jwt.sign({ id: findEmployee.idService }, process.env.SECRET_TOKEN, { expiresIn: '1h' });
     res.json({ token: token });
   }
+  async getAccountInfo(req, res) {
+    const { idService, dateStart, dateEnd } = req.query;
+    const commonData = await axios.get(`http://${process.env.API_1C_USER}:${process.env.API_1C_PASSWORD}@192.168.240.196/zup_pay/hs/Exch_LP/PayrollReport?ID=${idService}`);
+    res.json(commonData.data);
+  }
 }
 
 function formatEmployees(data) {
@@ -501,6 +506,7 @@ async function upsertEmployees(data) {
     await checkEmployees(item);
   }
 }
+
 async function disableEmployees(data) {
   let ids = data.map(({ idService }) => idService);
   await Employee.update(

@@ -24,6 +24,7 @@ router.get('/employee/coeff', errorWrapper(employeeController.getCoeff));
 router.get('/employee/:id', errorWrapper(authAdmin), errorWrapper(employeeController.getEmployee));
 router.get('/employee/user/get', errorWrapper(auth), errorWrapper(employeeController.getEmployeeUser));
 router.get('/auth', errorWrapper(auth), errorWrapper(employeeController.authEmployee));
+router.get('/account', errorWrapper(auth), errorWrapper(employeeController.getAccountInfo));
 router.get('/auth-admin/', errorWrapper(authAdmin), errorWrapper(employeeController.authAdmin));
 
 module.exports = router;
