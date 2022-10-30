@@ -44,7 +44,7 @@ class EmployeeController {
     });
     console.log({ name: employee.firstName, post: findPost?.name, subdivision: findSubdivision?.name });
     const messageTelegram = `
-${anonym ? employee.firstName + ' ' + employee.lastName : ''}
+${!anonym ? employee.firstName + ' ' + employee.lastName : ''}
 ${findSubdivision?.name}
 ${findPost?.name}
 Сообщение: "${message}"
@@ -491,6 +491,24 @@ ${findPost?.name}
   }
   async getAccountInfo(req, res) {
     const { idService, dateStart, dateEnd } = req.query;
+    const authHeader = req.headers['request_token'];
+    if (!authHeader) {
+      throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
+    }
+    const tokenData = jwt.verify(authHeader, process.env.SECRET_TOKEN, (err, tokenData) => {
+      if (err) {
+        throw new CustomError(403, TypeError.PROBLEM_WITH_TOKEN);
+      }
+      return tokenData;
+    });
+    const employee = await Employee.findOne({
+      where: {
+        idService: tokenData?.id,
+      },
+    });
+    if (!employee) {
+      throw new CustomError(404, TypeError.NOT_FOUND);
+    }
     const commonData = await axios.get(`http://${process.env.API_1C_USER}:${process.env.API_1C_PASSWORD}@192.168.240.196/zup_pay/hs/Exch_LP/PayrollReport?ID=${idService}`);
     res.json(commonData.data);
   }
