@@ -490,8 +490,9 @@ ${findPost?.name}
     res.json({ token: token });
   }
   async getAccountInfo(req, res) {
-    const { idService, dateStart, dateEnd } = req.query;
+    const { idService, date } = req.query;
     const authHeader = req.headers['request_token'];
+    console.log(date);
     if (!authHeader) {
       throw new CustomError(401, TypeError.PROBLEM_WITH_TOKEN);
     }
@@ -510,7 +511,11 @@ ${findPost?.name}
       throw new CustomError(404, TypeError.NOT_FOUND);
     }
     const commonData = await axios.get(`http://${process.env.API_1C_USER}:${process.env.API_1C_PASSWORD}@192.168.240.196/zup_pay/hs/Exch_LP/PayrollReport?ID=${idService}`);
-    res.json(commonData.data);
+    const tableData = await axios.get(`
+    http://${process.env.API_1C_USER_2}:${process.env.API_1C_PASSWORD_2}@192.168.240.196/UT11/hs/IntHRM/SalesMotivation?ID=${idService}&Date1=${date}T00:00:00&Date2=${date}T00:00:00
+    
+    `);
+    res.json({ ...commonData.data, table: tableData });
   }
 }
 
