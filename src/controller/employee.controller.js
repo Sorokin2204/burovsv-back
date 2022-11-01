@@ -510,11 +510,19 @@ ${findPost?.name}
     if (!employee) {
       throw new CustomError(404, TypeError.NOT_FOUND);
     }
+
     const commonData = await axios.get(`http://${process.env.API_1C_USER}:${process.env.API_1C_PASSWORD}@192.168.240.196/zup_pay/hs/Exch_LP/PayrollReport?ID=${idService}`);
-    const tableData = await axios.get(`
+    let tableResponse;
+    let tableData = null;
+    try {
+      tableResponse = await axios.get(`
     http://${process.env.API_1C_USER_2}:${process.env.API_1C_PASSWORD_2}@192.168.240.196/UT11/hs/IntHRM/SalesMotivation?ID=${idService}&Date1=${date}T00:00:00&Date2=${date}T00:00:00
     
     `);
+    } catch (error) {}
+    if (tableResponse?.data) {
+      tableData = tableResponse?.data;
+    }
     res.json({ ...commonData.data, table: tableData });
   }
 }
